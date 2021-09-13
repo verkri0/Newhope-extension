@@ -11,4 +11,3 @@ extensions:
       - name: AddQIReqTexts
         description: Add records to table EXTTXL
         type: SINGLE
-

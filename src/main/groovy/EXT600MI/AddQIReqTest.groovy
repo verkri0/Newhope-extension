@@ -34,7 +34,8 @@
  /*
  *Modification area - M3
  *Nbr            Date       User id     Description
- *QMS601         20210809   WZHAO       QMS601 IDM changes
+ *EXT600         20210809   WZHAO       QMS601 IDM changes
+ *EXT600         20210917   WZHAO       Change Target test result to use condition rather than test condition
  */
  
  /*
@@ -147,7 +148,8 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		camu = "";
 		dlix = 0;
 		orst = "";
-		// get bano if it is not entered
+		// Either BANO or ORNO/PONR need to be entered
+		// get bano from entered ORNO PONR if it is not entered
 		if (orno != "" && ponr != "") {
 		  DBAction queryOOLINE = database.table("OOLINE").index("00").selection("OBORST").build();
 	  DBContainer OOLINE = queryOOLINE.getContainer();
@@ -157,7 +159,6 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		  OOLINE.set("OBPOSX", posx.toInteger());
 		  if (queryOOLINE.read(OOLINE)) {
 			orst = OOLINE.get("OBORST").toString();
-			//logger.debug(("ORST=" + orst);
 		  }
 		  
 		  DBAction queryMHDISL = database.table("MHDISL").index("10").selection("URDLIX").build();
@@ -167,7 +168,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		  MHDISL.set("URRIDN", orno);
 		  MHDISL.set("URRIDL", ponr.toInteger());
 		  queryMHDISL.readAll(MHDISL, 4, 1, listMHDISL);
-		  
+		  // if CO line is allocated or pikced, read bano from MITALO, else read from MITTRA if it is reported or invoiced.
 		  if (orst.toInteger() >= 23 && orst.toInteger() <= 64) {
 			ExpressionFactory expression1 = database.getExpressionFactory("MITALO");
 			expression1 = expression1.eq("MQRIDL", ponr);
@@ -196,7 +197,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 			logger.debug("MITTRA.BANO=" + bano + " MITTRA.CAMU=" + camu);
 		  }
 		}
-	// - Validate bano
+	// - BANO is entered or retrieved from CO, validate it against MILOMA
 	itno = "";
 	faci = "";
 	DBAction queryMILOMA = database.table("MILOMA").index("10").selection("LMITNO","LMFACI","LMEXPI","LMMFDT").build();
@@ -208,7 +209,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		  mi.error("Lot number does not exist in MILOMA.");
 	  return;
 		}
-		// - Get QRID from QMSRQH
+		// - BANO is ready, get QRID from QMSRQH
 		qrid = "";
 		rorn = "";
 		qsta = 0;
@@ -227,7 +228,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		  mi.error("QI Request status is 4, replaced QI requests are not considered.");
 	  return;
 		}
-		// - Get ORTY from MWOHED
+		// - Get ORTY from MWOHED, this identifes if it is the CHINA items i.e. ORTY = "CHN"
 		orty = "";
 		if (rorn != "") {
 		  DBAction queryMWOHED = database.table("MWOHED").index("00").selection("VHORTY").build();
@@ -238,7 +239,6 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		  MWOHED.set("VHMFNO", rorn);
 		  if (queryMWOHED.read(MWOHED)) {
 			orty = MWOHED.get("VHORTY").toString();
-			//logger.debug("ORTY=" + orty);
 		  }
 		}
 		// - Get QI Tests - Range, Target and Qualitative from QMSRQT
@@ -248,7 +248,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	ExpressionFactory expression = database.getExpressionFactory("QMSRQT");
 	  expression = expression.eq("RTPTCA", "1");
 	  DBAction queryQMSRQT = database.table("QMSRQT").index("10").matching(expression)
-	.selection("RTQTST", "RTTSTY", "RTTX40", "RTDCCD","RTFRTI","RTEVTG","RTSMSZ","RTTEUM","RTVLTP","RTQOP1","RTEVMN","RTEVMX").build();
+	.selection("RTQTST", "RTTSTY", "RTTX40", "RTDCCD","RTFRTI","RTEVTG","RTSMSZ","RTTEUM","RTVLTP","RTQOP1","RTEVMN","RTEVMX", "RTQLCD").build();
 
 		DBContainer QMSRQT = queryQMSRQT.createContainer();
 		QMSRQT.set("RTCONO", XXCONO);
@@ -257,6 +257,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		queryQMSRQT.readAll(QMSRQT, 3, listQMSRQT);
 	logger.debug("Range.size=" + lstQITests_Range.size() + " Target.size=" + lstQITests_Target.size() + " Qualitative.size=" + lstQITests_Quality.size());
 	if (lstQITests_Range.size() > 0 || lstQITests_Target.size() > 0 || lstQITests_Quality.size() > 0) {
+	  // delete exist QI test records from extension table before generating the new ones
 	  deleteFromEXTREQ();
 	  
 	}
@@ -279,7 +280,6 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	faci = MILOMA.get("LMFACI").toString().trim();
 	expi = MILOMA.get("LMEXPI").toString().trim();
 	mfdt = MILOMA.get("LMMFDT").toString().trim();
-	logger.debug("ITNO=" + itno + " FACI=" + faci);
   }
   /*
   * listMHDISL - Callback function to return MHDISL
@@ -313,14 +313,12 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	qrid = QMSRQH.get("RHQRID").toString().trim();
 	rorn = QMSRQH.get("RHRORN").toString().trim();
 	qsta = QMSRQH.get("RHQSTA");
-	//logger.debug("QRID=" + qrid + " RORN=" + rorn);
   }
   /*
   * listQMSRQT - Callback function to return QMSRQT
   *
   */
    Closure<?> listQMSRQT = { DBContainer QMSRQT ->
-	//"RTQTST", "RTTSTY", "RTTX40", "RTDCCD","RTFRTI","RTEVTG","RTSMSZ","RTTEUM","RTVLTP","","RTEVMN","RTEVMX"
 	String qtst = QMSRQT.get("RTQTST").toString().trim();
 	String tsty = QMSRQT.get("RTTSTY").toString().trim();
 	String tx40 = QMSRQT.get("RTTX40").toString().trim();
@@ -333,7 +331,8 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	String qop1 = QMSRQT.get("RTQOP1").toString().trim();
 	String evmn = QMSRQT.get("RTEVMN").toString().trim();
 	String evmx = QMSRQT.get("RTEVMX").toString().trim();
-	def map = [QTST: qtst, TSTY: tsty, TX40: tx40, DCCD: dccd, FRTI: frti, EVTG: evtg, SMSZ: smsz, TEUM: teum, VLTP: vltp, QOP1: qop1, EVMN: evmn, EVMX: evmx];
+	String qlcd = QMSRQT.get("RTQLCD").toString().trim();
+	def map = [QTST: qtst, TSTY: tsty, TX40: tx40, DCCD: dccd, FRTI: frti, EVTG: evtg, SMSZ: smsz, TEUM: teum, VLTP: vltp, QOP1: qop1, EVMN: evmn, EVMX: evmx, QLCD: qlcd];
 	if (tsty.toInteger() == 2) {
 	  lstQITests_Quality.add(map);
 	} else if (vltp.toInteger() == 1) {
@@ -362,7 +361,6 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	// - Delet exist record from EXTREQ
 	DBAction ActionEXTREQ = database.table("EXTREQ").build();
 	if (!ActionEXTREQ.readLock(EXTREQ, deleteEXTREQ)){
-	  //mi.error("Record does not exists");
 	}
    }
   /*
@@ -408,7 +406,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	  String tcon = "";
 	  String qlcd = "";
 	  String qlc2 = "";
-	  String maxrecs = "";
+	  String maxrecs = "99";
 	  String spec = "";
 	  BigDecimal bEVTG = new BigDecimal(evtg).setScale(2, RoundingMode.HALF_UP);
 	  DecimalFormat decimalFormat = new DecimalFormat(COMMA_SEPERATED);
@@ -416,14 +414,14 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	  if (!orty.equals("CHN")) {
 		frti = "0";
 		smsz = "0";
-		maxrecs = 1;
+		//maxrecs = 5;
 		BigDecimal bEVMN = new BigDecimal(evmn).setScale(2, RoundingMode.HALF_UP);
 		String strEVMN = decimalFormat.format(bEVMN.doubleValue());
 		BigDecimal bEVMX = new BigDecimal(evmx).setScale(2, RoundingMode.HALF_UP);
 		String strEVMX = decimalFormat.format(bEVMX.doubleValue());
 		spec = strEVMN + " To " + strEVMX;
 	  } else {
-		maxrecs = 5;
+		//maxrecs = 5;
 		//spec = "n=" +  frti + "; c=0;m =" + evtg + ";M =" + evtg;
 		spec = "n=" +  frti + "; c=0;m =" + strEVTG + ";M =" + strEVTG;
 	  }
@@ -441,13 +439,51 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		ArrayList<Map<String, Object>> results = (ArrayList<Map<String, Object>>) miResponse.get("results");
 	   
 		ArrayList<Map<String, String>> recordList = (ArrayList<Map<String, String>>) results[0]["records"];
-		//logger.debug("LstQMSTRSU2: recordList:"+recordList.size());
 		recordList.eachWithIndex { it, index ->
 		  Map<String, String> recordQMSTRS = (Map<String, String>) it
-		  lstTestResults_Range.add(recordQMSTRS);
+		  if (lstTestResults_Range.size() < 5) {
+			  String qtrs = recordQMSTRS.QTRS;
+			  if (qtrs.toDouble() >= evmn.toDouble() &&  qtrs.toDouble() <= evmx.toDouble()) {
+				lstTestResults_Range.add(recordQMSTRS);
+			  }
+		  }
 		}
 	  }
-		  //logger.debug("lstTestResults_Range.size=" + lstTestResults_Range.size());
+	  //A EXT600 WZHAO 20210917 === BLOCK ADD START
+	  // sort lstTestResults_Range again if orty is not CHN, and only use the top one.
+	  // case A.RRQOP1 WHEN '1' THEN 1 WHEN '5' THEN 2 ELSE 3 END) asc
+	  String largestQTRS = "";
+	  int indexOfQOP1_1 = -1;
+	  int indexOfQOP1_5 = -1;
+	  for (int j=0; j<lstTestResults_Range.size(); j++) {
+			Map<String, String> record1 = (Map<String, String>) lstTestResults_Range[j];
+			if (j == 0) {
+			  largestQTRS = record1.QTRS;
+			}
+			String tseq = record1.TSEQ;
+		  String rrqop1 = record1.QOP1;
+		  String qtrs = record1.QTRS;
+		  if (qtrs.toDouble() == largestQTRS.toDouble()) {
+			if (rrqop1.toInteger() == 1) {
+			  indexOfQOP1_1 = j;
+			} else if (rrqop1.toInteger() == 5) {
+			  indexOfQOP1_5 = j;
+			}
+		  }
+	  }
+	  if (!orty.equals("CHN")) {
+		Map<String, String> recordTemp;
+		if(indexOfQOP1_1 != -1) {
+		  recordTemp = (Map<String, String>) lstTestResults_Range[indexOfQOP1_1];
+		} else if (indexOfQOP1_5 != -1) {
+		  recordTemp = (Map<String, String>) lstTestResults_Range[indexOfQOP1_5];
+		} else {
+		  recordTemp = (Map<String, String>) lstTestResults_Range[0];
+		}
+		lstTestResults_Range = new ArrayList();
+		lstTestResults_Range.add(recordTemp);
+	  }
+	  //A EXT600 WZHAO 20210917 === BLOCK ADD END
 		  String result = "";
 		  String firstQTRS = "0";
 		  String firstCOND = "";
@@ -456,7 +492,6 @@ public class AddQIReqTest extends ExtendM3Transaction {
 			String tseq = record1.TSEQ;
 		  String rrqop1 = record1.QOP1;
 		  String qtrs = record1.QTRS;
-		  //logger.debug("QTST=" + record1.RRQTST + " QTRS=" + qtrs + " RRQOP1=" + rrqop1);
 		  String cond = "";
 		  if (rrqop1.toInteger() == 1) {
 			cond = ">";
@@ -467,26 +502,19 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		  } else {
 			cond = "N/A";
 		  }
-		  boolean pass = false;
-		  if (qtrs.toDouble() >= evmn.toDouble() &&  qtrs.toDouble() <= evmx.toDouble()) {
-			pass = true;
+		if (j == 0) {
+		  firstQTRS = qtrs;
+		  firstCOND = cond;
+		}
+		  BigDecimal bQTRS = new BigDecimal(qtrs).setScale(2, RoundingMode.HALF_UP);
+		  String strQTRS = decimalFormat.format(bQTRS.doubleValue());
+		  if (cond != "N/A") {
+			result += cond + strQTRS;
+		  } else {
+			result += strQTRS;
 		  }
-		  if (pass) {
-			if (j == 0) {
-			  firstQTRS = qtrs;
-			  firstCOND = cond;
-			}
-			  //writeEXTREQ(qtst, tseq, cond, qtrs, tx40, uomt, dccd, frti, evtg, smsz, tcon, evmn, evmx, qlcd, qlc2, result, "Range Tests");
-			  BigDecimal bQTRS = new BigDecimal(qtrs).setScale(2, RoundingMode.HALF_UP);
-			  String strQTRS = decimalFormat.format(bQTRS.doubleValue());
-			  if (cond != "N/A") {
-				result += cond + strQTRS;
-			  } else {
-				result += strQTRS;
-			  }
-			  if (j < (lstTestResults_Range.size()-1)) {
-				result += "/";
-			  }
+		  if (j < (lstTestResults_Range.size()-1)) {
+			result += "/";
 		  }
 		  }
 		  writeEXTREQ(qtst, firstCOND, firstQTRS, tx40, uomt, dccd, frti, evtg, smsz, tcon, evmn, evmx, qlcd, qlc2, result, spec, "Range Tests");
@@ -528,7 +556,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	  String tcon = "";
 	  String qlcd = "";
 	  String qlc2 = "";
-	  String maxrecs = "";
+	  String maxrecs = "99";
 	  String spec = "";
 	  BigDecimal bEVTG = new BigDecimal(evtg).setScale(2, RoundingMode.HALF_UP);
 	  DecimalFormat decimalFormat = new DecimalFormat(COMMA_SEPERATED);
@@ -549,12 +577,10 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		}
 		frti = "0";
 		smsz = "0";
-		maxrecs = 1;
-		//spec = tcon + bEVTG;
+		//maxrecs = 5;
 		spec = tcon + strEVTG;
 	  } else {
-		maxrecs = 5;
-		//spec = "n=" +  frti + "; c=0;m =" + evtg + ";M =" + evtg;
+		//maxrecs = 5;
 		spec = "n=" +  frti + "; c=0;m =" + strEVTG + ";M =" + strEVTG;
 	  }
 	  
@@ -571,13 +597,55 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		ArrayList<Map<String, Object>> results = (ArrayList<Map<String, Object>>) miResponse.get("results");
 	   
 		ArrayList<Map<String, String>> recordList = (ArrayList<Map<String, String>>) results[0]["records"];
-		//logger.debug("LstQMSTRSU2: recordList:"+recordList.size());
 		recordList.eachWithIndex { it, index ->
 		  Map<String, String> recordQMSTRS = (Map<String, String>) it
-		  lstTestResults_Target.add(recordQMSTRS);
+		  if (lstTestResults_Target.size() < 5) {
+			String tseq = recordQMSTRS.TSEQ;
+			  String rrqop1 = recordQMSTRS.QOP1;
+			  String qtrs = recordQMSTRS.QTRS;
+			  boolean pass = testingResult(rtqop1, qtrs, evtg, rrqop1);
+			  logger.debug("Testing result for QTST " + recordQMSTRS.QTST + " TSEQ " + tseq + " QTRS " + qtrs +  " = " + pass);
+			  if (pass) {
+				lstTestResults_Target.add(recordQMSTRS);
+			  }
+		  }
 		}
 	  }
-		  //logger.debug("lstTestResults_Target.size=" + lstTestResults_Target.size());
+	  //A EXT600 WZHAO 20210917 === BLOCK ADD START
+	  // sort lstTestResults_Target again if orty is not CHN, and only use the top one.
+	  // case A.RRQOP1 WHEN '1' THEN 1 WHEN '5' THEN 2 ELSE 3 END) asc
+	  String largestQTRS = "";
+	  int indexOfQOP1_1 = -1;
+	  int indexOfQOP1_5 = -1;
+	  for (int j=0; j<lstTestResults_Target.size(); j++) {
+			Map<String, String> record1 = (Map<String, String>) lstTestResults_Target[j];
+			if (j == 0) {
+			  largestQTRS = record1.QTRS;
+			}
+			String tseq = record1.TSEQ;
+		  String rrqop1 = record1.QOP1;
+		  String qtrs = record1.QTRS;
+		  if (qtrs.toDouble() == largestQTRS.toDouble()) {
+			if (rrqop1.toInteger() == 1) {
+			  indexOfQOP1_1 = j;
+			} else if (rrqop1.toInteger() == 5) {
+			  indexOfQOP1_5 = j;
+			}
+		  }
+	  }
+	  if (!orty.equals("CHN")) {
+		Map<String, String> recordTemp;
+		if(indexOfQOP1_1 != -1) {
+		  recordTemp = (Map<String, String>) lstTestResults_Target[indexOfQOP1_1];
+		} else if (indexOfQOP1_5 != -1) {
+		  recordTemp = (Map<String, String>) lstTestResults_Target[indexOfQOP1_5];
+		} else {
+		  recordTemp = (Map<String, String>) lstTestResults_Target[0];
+		}
+		lstTestResults_Target = new ArrayList();
+		lstTestResults_Target.add(recordTemp);
+	  }
+	  //A EXT600 WZHAO 20210917 === BLOCK ADD END
 		  String result = "";
 		  String firstQTRS = "0";
 		  String firstCOND = "";
@@ -586,7 +654,6 @@ public class AddQIReqTest extends ExtendM3Transaction {
 			String tseq = record1.TSEQ;
 		  String rrqop1 = record1.QOP1;
 		  String qtrs = record1.QTRS;
-		  //logger.debug("QTST=" + record1.RRQTST + " QTRS=" + qtrs + " RRQOP1=" + rrqop1);
 		  String cond = "";
 		  if (rrqop1.toInteger() == 1) {
 			cond = ">";
@@ -597,23 +664,19 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		  } else {
 			cond = "N/A";
 		  }
-		  boolean pass = testingResult(rtqop1, qtrs, evtg, rrqop1);
-		  if (pass) {
-			if (j == 0) {
-			  firstQTRS = qtrs;
-			  firstCOND = cond;
-			}
-			  //writeEXTREQ(qtst, tseq, cond, qtrs, tx40, uomt, dccd, frti, evtg, smsz, tcon, evmn, evmx, qlcd, qlc2, "Target Tests");
-			  BigDecimal bQTRS = new BigDecimal(qtrs).setScale(2, RoundingMode.HALF_UP);
-			  String strQTRS = decimalFormat.format(bQTRS.doubleValue());
-			  if (cond != "N/A") {
-				result += cond + strQTRS;
-			  } else {
-				result += strQTRS;
-			  }
-			  if (j < (lstTestResults_Target.size()-1)) {
-				result += "/";
-			  }
+		if (j == 0) {
+		  firstQTRS = qtrs;
+		  firstCOND = cond;
+		}
+		  BigDecimal bQTRS = new BigDecimal(qtrs).setScale(2, RoundingMode.HALF_UP);
+		  String strQTRS = decimalFormat.format(bQTRS.doubleValue());
+		  if (cond != "N/A") {
+			result += cond + strQTRS;
+		  } else {
+			result += strQTRS;
+		  }
+		  if (j < (lstTestResults_Target.size()-1)) {
+			result += "/";
 		  }
 		  }
 		  writeEXTREQ(qtst, firstCOND, firstQTRS, tx40, uomt, dccd, frti, evtg, smsz, tcon, evmn, evmx, qlcd, qlc2, result, spec, "Target Tests");
@@ -639,7 +702,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	  String rtqop1 = record.QOP1;
 	  String evmn = record.EVMN;
 	  String evmx = record.EVMX;
-	  
+	  String rtqlcd = record.QLCD;
 	  // - Get UOM from CSYTAB
 	  String uomt = "";
 	  if (teum != "") {
@@ -681,17 +744,15 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		ArrayList<Map<String, Object>> results = (ArrayList<Map<String, Object>>) miResponse.get("results");
 	   
 		ArrayList<Map<String, String>> recordList = (ArrayList<Map<String, String>>) results[0]["records"];
-		//logger.debug("LstQMSTRSU2: recordList:"+recordList.size());
 		recordList.eachWithIndex { it, index ->
 		  Map<String, String> recordQMSTRS = (Map<String, String>) it
 		  lstTestResults_Quality.add(recordQMSTRS);
 		}
 	  }
-		  //logger.debug("lstTestResults_Quality.size=" + lstTestResults_Quality.size());
 		  String result = "";
 		  String firstCOND = "";
 		  String firstQLCD = "";
-		  String qlc2 = "Allowable value";
+		  String qlc2 = rtqlcd;
 		  for (int j=0; j<lstTestResults_Quality.size(); j++) {
 			Map<String, String> record1 = (Map<String, String>) lstTestResults_Quality[j];
 			String tseq = record1.TSEQ;
@@ -711,10 +772,12 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		  if (j == 0) {
 			  firstQLCD = qlcd;
 		   }
-			//writeEXTREQ(qtst, tseq, cond, qtrs, tx40, uomt, dccd, frti, evtg, smsz, tcon, evmn, evmx, qlcd, qlc2, result, "Quality Tests");
 		  }
 		  result = firstQLCD;
-		  String spec = result;
+		  if (result == "") {
+			result = rtqlcd;
+		  }
+		  String spec = rtqlcd;
 		  writeEXTREQ(qtst, firstCOND, "0", tx40, uomt, dccd, frti, evtg, smsz, tcon, evmn, evmx, firstQLCD, qlc2, result, spec, "Quality Tests");
 	  }
 	}

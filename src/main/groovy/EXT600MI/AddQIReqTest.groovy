@@ -36,6 +36,7 @@
  *Nbr            Date       User id     Description
  *EXT600         20210809   WZHAO       QMS601 IDM changes
  *EXT600         20210917   WZHAO       Change Target test result to use condition rather than test condition
+ *EXT600         20211027   WZHAO       Introduce new input parameter ITNO if print from QMS600
  */
  
  /*
@@ -124,6 +125,10 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	  if (posx == "") {
 		posx = "0";
 	  }
+	  itno = mi.inData.get("ITNO") == null ? '' : mi.inData.get("ITNO").trim(); //A EXT600 WZHAO 20211027
+	  if (itno == "?") {//A EXT600 WZHAO 20211027
+		itno = "";//A EXT600 WZHAO 20211027
+	  } //A EXT600 WZHAO 20211027
 	  //Validate input fields
 	if (!cono.isEmpty()) {
 			if (cono.isInteger()){
@@ -143,6 +148,10 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	  mi.error("Order number or Lot number must be entered");
 	  return;
 	}
+	if (!bano.isEmpty() && itno.isEmpty()) {//A EXT600 WZHAO 20211027
+	  mi.error("Item number must be entered if the lot number is entered.");//A EXT600 WZHAO 20211027
+	  return;//A EXT600 WZHAO 20211027
+	}//A EXT600 WZHAO 20211027
 	whlo = "";
 	whsl = "";
 		camu = "";
@@ -151,7 +160,8 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		// Either BANO or ORNO/PONR need to be entered
 		// get bano from entered ORNO PONR if it is not entered
 		if (orno != "" && ponr != "") {
-		  DBAction queryOOLINE = database.table("OOLINE").index("00").selection("OBORST").build();
+		  //DBAction queryOOLINE = database.table("OOLINE").index("00").selection("OBORST").build();//D EXT600 WZHAO 20211027
+		  DBAction queryOOLINE = database.table("OOLINE").index("00").selection("OBORST, OBITNO").build();//A EXT600 WZHAO 20211027
 	  DBContainer OOLINE = queryOOLINE.getContainer();
 		  OOLINE.set("OBCONO", XXCONO);
 		  OOLINE.set("OBORNO", orno);
@@ -159,6 +169,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		  OOLINE.set("OBPOSX", posx.toInteger());
 		  if (queryOOLINE.read(OOLINE)) {
 			orst = OOLINE.get("OBORST").toString();
+			itno = OOLINE.get("OBITNO").toString();//A EXT600 WZHAO 20211027
 		  }
 		  
 		  DBAction queryMHDISL = database.table("MHDISL").index("10").selection("URDLIX").build();
@@ -198,14 +209,20 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		  }
 		}
 	// - BANO is entered or retrieved from CO, validate it against MILOMA
-	itno = "";
+	//itno = "";//D EXT600 WZHAO 20211027
 	faci = "";
 	DBAction queryMILOMA = database.table("MILOMA").index("10").selection("LMITNO","LMFACI","LMEXPI","LMMFDT").build();
 	DBContainer MILOMA = queryMILOMA.getContainer();
 		MILOMA.set("LMCONO", XXCONO);
 		MILOMA.set("LMBANO", bano);
-		queryMILOMA.readAll(MILOMA, 2, 1, listMILOMA);
-		if (itno == "") {
+		MILOMA.set("LMITNO", itno);//A EXT600 WZHAO 20211027
+		//queryMILOMA.readAll(MILOMA, 2, 1, listMILOMA);//D EXT600 WZHAO 20211027
+		if (queryMILOMA.read(MILOMA)) {//A EXT600 WZHAO 20211027
+		  faci = MILOMA.get("LMFACI").toString().trim();//A EXT600 WZHAO 20211027
+	  expi = MILOMA.get("LMEXPI").toString().trim();//A EXT600 WZHAO 20211027
+	  mfdt = MILOMA.get("LMMFDT").toString().trim();//A EXT600 WZHAO 20211027
+		} else {//A EXT600 WZHAO 20211027
+		//if (itno == "") {//D EXT600 WZHAO 20211027
 		  mi.error("Lot number does not exist in MILOMA.");
 	  return;
 		}
@@ -275,12 +292,12 @@ public class AddQIReqTest extends ExtendM3Transaction {
   * listMILOMA - Callback function to return MILOMA
   *
   */
-  Closure<?> listMILOMA = { DBContainer MILOMA ->
-	itno = MILOMA.get("LMITNO").toString().trim();
-	faci = MILOMA.get("LMFACI").toString().trim();
-	expi = MILOMA.get("LMEXPI").toString().trim();
-	mfdt = MILOMA.get("LMMFDT").toString().trim();
-  }
+  //Closure<?> listMILOMA = { DBContainer MILOMA ->//D EXT600 WZHAO 20211027
+	//itno = MILOMA.get("LMITNO").toString().trim();//D EXT600 WZHAO 20211027
+	//faci = MILOMA.get("LMFACI").toString().trim();//D EXT600 WZHAO 20211027
+	//expi = MILOMA.get("LMEXPI").toString().trim();//D EXT600 WZHAO 20211027
+	//mfdt = MILOMA.get("LMMFDT").toString().trim();//D EXT600 WZHAO 20211027
+  //}//D EXT600 WZHAO 20211027
   /*
   * listMHDISL - Callback function to return MHDISL
   *
@@ -456,7 +473,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 	  int indexOfQOP1_1 = -1;
 	  int indexOfQOP1_5 = -1;
 	  for (int j=0; j<lstTestResults_Range.size(); j++) {
-			Map<String, String> record1 = (Map<String, String>) lstTestResults_Range[j];
+		Map<String, String> record1 = (Map<String, String>) lstTestResults_Range[j];
 			if (j == 0) {
 			  largestQTRS = record1.QTRS;
 			}
@@ -471,7 +488,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 			}
 		  }
 	  }
-	  if (!orty.equals("CHN")) {
+	  if (!orty.equals("CHN") && lstTestResults_Range.size() > 0) {
 		Map<String, String> recordTemp;
 		if(indexOfQOP1_1 != -1) {
 		  recordTemp = (Map<String, String>) lstTestResults_Range[indexOfQOP1_1];
@@ -484,7 +501,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 		lstTestResults_Range.add(recordTemp);
 	  }
 	  //A EXT600 WZHAO 20210917 === BLOCK ADD END
-		  String result = "";
+	  String result = "";
 		  String firstQTRS = "0";
 		  String firstCOND = "";
 		  for (int j=0; j<lstTestResults_Range.size(); j++) {
@@ -633,7 +650,7 @@ public class AddQIReqTest extends ExtendM3Transaction {
 			}
 		  }
 	  }
-	  if (!orty.equals("CHN")) {
+	  if (!orty.equals("CHN") && lstTestResults_Target.size() > 0) {
 		Map<String, String> recordTemp;
 		if(indexOfQOP1_1 != -1) {
 		  recordTemp = (Map<String, String>) lstTestResults_Target[indexOfQOP1_1];

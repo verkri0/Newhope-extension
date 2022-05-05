@@ -152,8 +152,6 @@ public class EXT840 extends ExtendM3Batch {
       String cino2 = record.CINO2;
       String cuam2 = record.CUAM2;
       String inyr2 = record.INYR2;
-      logger.debug("PYNO=" + pyno + " CUNO=" + cuno + " CINO=" + cino + " CUAM=" + cuam + " INYR=" + inyr);
-      logger.debug("PYNO2=" + pyno2 + " CUNO2=" + cuno2 + " CINO2=" + cino2 + " CUAM2=" + cuam2 + " INYR2=" + inyr2);
       lineNo++;
       create_GLS840MI_line(cuno, pyno, cino, inyr, cuam, lineNo);
       lineNo++;
@@ -209,7 +207,7 @@ public class EXT840 extends ExtendM3Batch {
        
     def callback01 = {
        Map<String, String> response ->
-       logger.debug("Response = ${response}")
+       
     }
   
     miCaller.call("CUSEXTMI", trans, params01, callback01)
@@ -295,7 +293,7 @@ public class EXT840 extends ExtendM3Batch {
     if(!oFEID.isEmpty()) {  
       sFEID = oFEID.substring(0,2); 
     }
-    //logger.info("startingwith" + sFEID);
+    
     if (!sFEID.equals("OI")) {
        return;
     } 
@@ -414,7 +412,6 @@ public class EXT840 extends ExtendM3Batch {
     }
     
     if (sFEID.equals("AR") && !oFEID.equals("AR30")) {
-      //logger.debug("scenario 2, searching FSLEDG for CUAM > 0 and CINO=" + oVTXT);
       ExpressionFactory expression = database.getExpressionFactory("FSLEDG");
       expression = expression.eq("ESRECO", "0");
       expression = expression.and(expression.gt("ESCUAM", "0.00"));
@@ -464,7 +461,6 @@ public class EXT840 extends ExtendM3Batch {
    *
   */    
  def match_FSLEDG_03(String oPYNO, String oCUNO, String oCINO, String oFEID, String oFNCN) {
-    //logger.debug("scenario 3, searching FSLEDG for CUAM > 0 and CINO=" + CINO2);
     String lastDigit = oCINO.substring(oCINO.length() - 1);
     if (!lastDigit.equals("1")) {
       return;
@@ -529,7 +525,7 @@ public class EXT840 extends ExtendM3Batch {
     
     def callback = {
       Map<String, String> response ->
-      logger.debug("Response = ${response}")
+       
     }
     
     miCaller.call("GLS840MI","AddBatchHead", params, callback)
@@ -551,7 +547,7 @@ public class EXT840 extends ExtendM3Batch {
     def params = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1": noseries01, "LINE": line.toString(), "PARM": parm] 
     def callback = {
     Map<String, String> response ->
-      logger.debug("Response = ${response}")
+       
     }
     
     miCaller.call("GLS840MI","AddBatchLine", params, callback)

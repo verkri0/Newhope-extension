@@ -1,3 +1,34 @@
+/*
+ ***************************************************************
+ *                                                             *
+ *                           NOTICE                            *
+ *                                                             *
+ *   THIS SOFTWARE IS THE PROPERTY OF AND CONTAINS             *
+ *   CONFIDENTIAL INFORMATION OF INFOR AND/OR ITS AFFILIATES   *
+ *   OR SUBSIDIARIES AND SHALL NOT BE DISCLOSED WITHOUT PRIOR  *
+ *   WRITTEN PERMISSION. LICENSED CUSTOMERS MAY COPY AND       *
+ *   ADAPT THIS SOFTWARE FOR THEIR OWN USE IN ACCORDANCE WITH  *
+ *   THE TERMS OF THEIR SOFTWARE LICENSE AGREEMENT.            *
+ *   ALL OTHER RIGHTS RESERVED.                                *
+ *                                                             *
+ *   (c) COPYRIGHT 2020 INFOR.  ALL RIGHTS RESERVED.           *
+ *   THE WORD AND DESIGN MARKS SET FORTH HEREIN ARE            *
+ *   TRADEMARKS AND/OR REGISTERED TRADEMARKS OF INFOR          *
+ *   AND/OR ITS AFFILIATES AND SUBSIDIARIES. ALL RIGHTS        *
+ *   RESERVED.  ALL OTHER TRADEMARKS LISTED HEREIN ARE         *
+ *   THE PROPERTY OF THEIR RESPECTIVE OWNERS.                  *
+ *                                                             *
+ ***************************************************************
+ */
+
+/*
+ *Modification area - M3
+ *Nbr               Date      User id     Description
+ *ABF_R_0625        20220405  RDRIESSEN   Mods BF0625- Generate APS450 invoice printout extension workfile
+ *
+ */
+
+
 
  import groovy.lang.Closure
  
@@ -37,10 +68,7 @@ public class UpdateCHG extends ExtendM3Transaction {
   private String whlo;
   private String sino;
   private String vfdt;
-   private String lfdt;
-  
-  
-  
+  private String lfdt;
   private String puno;
   private String appr;
   private String asts;

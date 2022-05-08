@@ -262,9 +262,7 @@ EXTCHG.delete();
    
    	 miCaller.call("ATS101MI","GetAttributes", params01, callback01)
     
-    
-    logger.debug('hoi ' + car1)
-    logger.debug('hoi2 ' + suno)
+   
 
   def params02 = ["CEID": "CAR01", "OVK1":"99999", "OVK2":suno.toString(),  ] // toString is needed to convert from gstring to string
     
@@ -276,9 +274,7 @@ EXTCHG.delete();
       if(response.OVHE != null){
           ovhe =  response.OVHE   
           
-            logger.debug('hoi3 ' + ovhe)
-          
-          
+           
         }
         
     }
@@ -434,8 +430,7 @@ EXTCHG.delete();
     
     def callback01 = {
     Map<String, String> response ->
-      logger.info("Response = ${response}")
-     
+    
      
       if(response.ATID != null){
         
@@ -504,7 +499,6 @@ EXTCHG.delete();
     
     def callback04 = {
     Map<String, String> response ->
-      logger.info("Response = ${response}")
      
      
       if(response.OVHE != null){

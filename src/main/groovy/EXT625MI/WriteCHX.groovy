@@ -190,11 +190,4 @@ public class WriteCHX extends ExtendM3Transaction {
   
   
   
-  
-  
-  
-  
-  
-  
-  
 }

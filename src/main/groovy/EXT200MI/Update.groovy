@@ -98,17 +98,9 @@
   	  appr = "";
   	} 
 
-    // Validate input fields  	
-  //	if (!cono.isEmpty()) {
-	//		if (cono.isInteger()){
-	//			XXCONO = cono.toInteger();
-	//		} else {
-	//			mi.error("Company " + cono + " is invalid");
-		//		return;
-		//	}
-		//} else {
+    
 			XXCONO = (Integer)program.LDAZD.CONO;
-	//	}
+	
   	
     if (!puno.isEmpty()) {
       DBAction queryMPHEAD = database.table("MPHEAD").index("00").selection("IAPUNO").build()

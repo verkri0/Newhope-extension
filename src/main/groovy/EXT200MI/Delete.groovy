@@ -25,11 +25,12 @@
  *Modification area - M3
  *Nbr               Date      User id     Description
  *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Write/Update EXTAPR records as a basis for PO authorization process
+ *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
  *
  */
 
 
-import groovy.lang.Closure
+ import groovy.lang.Closure
  
  import java.time.LocalDate;
  import java.time.LocalDateTime;
@@ -49,7 +50,6 @@ public class Delete extends ExtendM3Transaction {
   private final IonAPI ion;
   
   //Input fields
-  private String cono;
   private String puno;
   private String appr;
   private String asts;
@@ -58,8 +58,10 @@ public class Delete extends ExtendM3Transaction {
   private String appr1;
   private String asts1;
   private String YYCONO;
-   
   
+ /*
+  * Delete Purchase Authorisation extension table row
+ */
   public Delete(MIAPI mi, DatabaseAPI database, MICallerAPI miCaller, LoggerAPI logger, ProgramAPI program, IonAPI ion) {
     this.mi = mi;
     this.database = database;
@@ -68,7 +70,6 @@ public class Delete extends ExtendM3Transaction {
   	this.program = program;
 	  this.ion = ion;
    
-    
   }
   
   public void main() {
@@ -77,34 +78,42 @@ public class Delete extends ExtendM3Transaction {
   	puno = mi.inData.get("PUNO") == null ? '' : mi.inData.get("PUNO").trim();
   	if (puno == "?") {
   	  puno = "";
-  	} 
+  	}
   	
-  
+    XXCONO = (Integer)program.getLDAZD().CONO
+
+  	// Validate input fields
+  	DBAction queryEXTAPR = database.table("EXTAPR").index("00").selection("EXPUNO").build()
+    DBContainer EXTAPR = queryEXTAPR.getContainer();
+    EXTAPR.set("EXCONO", XXCONO);
+    EXTAPR.set("EXPUNO", puno);
+    if (!queryEXTAPR.read(EXTAPR)) {
+      mi.error("Record does not exist");
+      return;
+    }
   	
     delete_EXTAPR(puno)
    
   }
   
-  
+
+  /*
+  ** Delete Purchase Authorisation extension row from EXTAPR
+  */
   def delete_EXTAPR(String puno) {
-    
     
     int currentCompany = (Integer)program.getLDAZD().CONO
     YYCONO = currentCompany.toString();
     
-    
-  DBAction query = database.table("EXTAPR").index("00").selection("EXCONO", "EXPUNO", "EXAPPR", "EXASTS").build()
-  DBContainer container = query.getContainer()
-  container.set("EXCONO", currentCompany)
-  container.set("EXPUNO", puno)
-  query.readLock(container, deleteCallBack)
+    DBAction query = database.table("EXTAPR").index("00").selection("EXCONO", "EXPUNO", "EXAPPR", "EXASTS").build()
+    DBContainer container = query.getContainer()
+    container.set("EXCONO", currentCompany)
+    container.set("EXPUNO", puno)
+  	query.readLock(container, deleteCallBack)
 
-    
-    
   }
   
-  
-  
+
   Closure<?> deleteCallBack = { LockedResult lockedResult ->
 
   lockedResult.delete()
@@ -114,11 +123,6 @@ public class Delete extends ExtendM3Transaction {
    mi.outData.put("MSG1" , puno + " has been deleted")
    mi.write()
   
-}
-  
-  
-  
-  
-  
+  }
   
 }

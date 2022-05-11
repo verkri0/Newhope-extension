@@ -1,4 +1,3 @@
-
 /*
  ***************************************************************
  *                                                             *
@@ -26,6 +25,7 @@
  *Modification area - M3
  *Nbr               Date      User id     Description
  *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Write/Update EXTAPR records as a basis for PO authorization process
+ *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
  *
  */
 
@@ -34,11 +34,11 @@
  import java.time.LocalDate;
  import java.time.LocalDateTime;
  import java.time.format.DateTimeFormatter;
+ import java.time.ZoneId;
  import groovy.json.JsonSlurper;
  import java.math.BigDecimal;
  import java.math.RoundingMode;
  import java.text.DecimalFormat;
-
 
 
 public class Add extends ExtendM3Transaction {
@@ -50,12 +50,15 @@ public class Add extends ExtendM3Transaction {
   private final IonAPI ion;
   
   //Input fields
-  private String cono;
   private String puno;
   private String appr;
   private String asts;
-   private int XXCONO;
+
+  private int XXCONO;
  
+ /*
+  * Add Purchase Authorisation extension table row
+ */
   public Add(MIAPI mi, DatabaseAPI database, MICallerAPI miCaller, LoggerAPI logger, ProgramAPI program, IonAPI ion) {
     this.mi = mi;
     this.database = database;
@@ -80,16 +83,48 @@ public class Add extends ExtendM3Transaction {
   	if (asts == "?") {
   	  asts = "";
   	} 
-    
-    
+
+		XXCONO = (Integer)program.LDAZD.CONO;
+
+    // Validate input fields  	
     
 		if (puno.isEmpty()) {
       mi.error("Purchase Order must be entered");
       return;
     }
-    if (appr.isEmpty()) {
-      mi.error("Approver must be entered");
+    if (asts.isEmpty()) {
+      mi.error("Authorisation status must be entered");
       return;
+    }
+
+    if (!puno.isEmpty()) {
+      DBAction queryMPHEAD = database.table("MPHEAD").index("00").selection("IAPUNO").build()
+      DBContainer MPHEAD = queryMPHEAD.getContainer();
+      MPHEAD.set("IACONO", XXCONO);
+      MPHEAD.set("IAPUNO", puno);
+      if (!queryMPHEAD.read(MPHEAD)) {
+        mi.error("Purchase order number is invalid.");
+        return;
+      }
+    }  
+    
+    if (!asts.isEmpty()) {
+      if (!asts.equals("Authorised") && !asts.equals("Cancelled") && !asts.equals("Declined") && !asts.equals("Sent for approval") && !asts.equals("Cancelling workflow") && !asts.equals("Under authorisation")) {
+        mi.error("Invalid authorisation status");
+        return;
+      }
+    }
+
+    if (!appr.isEmpty()) {
+      DBAction queryCMNUSR = database.table("CMNUSR").index("00").selection("JUUSID").build()
+      DBContainer CMNUSR = queryCMNUSR.getContainer();
+      CMNUSR.set("JUCONO", 0);
+      CMNUSR.set("JUDIVI", "");
+      CMNUSR.set("JUUSID", appr);
+      if (!queryCMNUSR.read(CMNUSR)) {
+        mi.error("Approver is invalid.");
+        return;
+      }
     }
     
      writeEXTAPR(puno, appr, asts);
@@ -97,16 +132,19 @@ public class Add extends ExtendM3Transaction {
   }
   
   
+  /*
+  ** Write Purchase Authorisation extension table EXTAPR
+  */
   def writeEXTAPR(String puno, String appr, String asts) {
 	  //Current date and time
   	int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
   	
-  	  int currentCompany = (Integer)program.getLDAZD().CONO
+  	int currentCompany = (Integer)program.getLDAZD().CONO
   	
 	  DBAction ActionEXTAPR = database.table("EXTAPR").build();
   	DBContainer EXTAPR = ActionEXTAPR.getContainer();
-  	// QI Test information
+
   	EXTAPR.set("EXCONO", currentCompany);
   	EXTAPR.set("EXPUNO", puno);
   	EXTAPR.set("EXAPPR", appr);

@@ -208,23 +208,23 @@ public class WeightAVE extends ExtendM3Transaction {
   	int currentCompany = (Integer)program.getLDAZD().CONO
 
     //check-validate if MWOHED record exists
-    DBAction query = database.table("MWOHED").index("00").selection("VHCONO", "VHFACI", "VHPRNO", "VHMFNO").build()
-    DBContainer container = query.getContainer()
-    container.set("VHCONO", currentCompany)
-    container.set("VHFACI", faci)
-    container.set("VHPRNO", prno)
-    container.set("VHMFNO", mfno)
+    DBAction query = database.table("MWOHED").index("00").selection("VHCONO", "VHFACI", "VHPRNO", "VHMFNO").build();
+    DBContainer container = query.getContainer();
+    container.set("VHCONO", currentCompany);
+    container.set("VHFACI", faci);
+    container.set("VHPRNO", prno);
+    container.set("VHMFNO", mfno);
     
-    query.readAll(container, 4, releasedItemProcessor)
+    query.readAll(container, 4, releasedItemProcessor);
   
 	}
   
   
   Closure<?> releasedItemProcessor = { DBContainer container ->
-    cono = container.get("VHCONO")
-    faci = container.get("VHFACI")
-    prno = container.get("VHPRNO")
-    mfno = container.get("VHMFNO")
+    cono = container.get("VHCONO");
+    faci = container.get("VHFACI");
+    prno = container.get("VHPRNO");
+    mfno = container.get("VHMFNO");
   
     DBAction actionEXTWGT = database.table("EXTWGT").build();
   	DBContainer EXTWGT = actionEXTWGT.getContainer();
@@ -233,7 +233,7 @@ public class WeightAVE extends ExtendM3Transaction {
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
 
   	//Company
-  	int currentCompany = (Integer)program.getLDAZD().CONO
+  	int currentCompany = (Integer)program.getLDAZD().CONO;
   	 
   	EXTWGT.set("EXCONO", currentCompany);
   	EXTWGT.set("EXFACI", faci);

@@ -142,8 +142,8 @@ public class Add extends ExtendM3Transaction {
   	
   	int currentCompany = (Integer)program.getLDAZD().CONO
   	
-	  DBAction ActionEXTAPR = database.table("EXTAPR").build();
-  	DBContainer EXTAPR = ActionEXTAPR.getContainer();
+	  DBAction actionEXTAPR = database.table("EXTAPR").build();
+  	DBContainer EXTAPR = actionEXTAPR.getContainer();
 
   	EXTAPR.set("EXCONO", currentCompany);
   	EXTAPR.set("EXPUNO", puno);
@@ -155,7 +155,7 @@ public class Add extends ExtendM3Transaction {
   	EXTAPR.set("EXCHNO", 0);
   	EXTAPR.set("EXCHID", program.getUser());
   	
-  	ActionEXTAPR.insert(EXTAPR, recordExists);
+  	actionEXTAPR.insert(EXTAPR, recordExists);
 	}
   
   

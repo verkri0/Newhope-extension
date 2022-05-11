@@ -25,6 +25,7 @@
  *Modification area - M3
  *Nbr               Date      User id     Description
  *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Write/Update EXTAPR records as a basis for PO authorization process
+ *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
  *
  */
 
@@ -52,7 +53,7 @@ public class Get extends ExtendM3Transaction {
   private String puno;
   private String appr;
   private String asts;
-   private int XXCONO;
+  private int XXCONO;
   
   private String puno1;
   private String appr1;
@@ -61,6 +62,9 @@ public class Get extends ExtendM3Transaction {
   private String YYCONO;
    
   
+ /*
+  * Get Purchase Authorisation extension table row
+ */
   public Get(MIAPI mi, DatabaseAPI database, MICallerAPI miCaller, LoggerAPI logger, ProgramAPI program, IonAPI ion) {
     this.mi = mi;
     this.database = database;
@@ -68,48 +72,44 @@ public class Get extends ExtendM3Transaction {
   	this.logger = logger;
   	this.program = program;
 	  this.ion = ion;
-   
     
   }
   
   public void main() {
-    
      
   	puno = mi.inData.get("PUNO") == null ? '' : mi.inData.get("PUNO").trim();
   	if (puno == "?") {
   	  puno = "";
-  	} 
-    
-   
+  	}
+
     getEXTAPR(puno)
    
   }
   
-  
+  /*
+  ** Get Purchase Authorisation extension table data from EXTAPR
+  */
   def getEXTAPR(String puno) {
-    
     
     int currentCompany = (Integer)program.getLDAZD().CONO
     YYCONO = currentCompany.toString(); 
     
-        DBAction query = database.table("EXTAPR").index("00").selection("EXCONO", "EXPUNO", "EXAPPR", "EXASTS").build()
-        DBContainer container = query.getContainer()
-        container.set("EXCONO", currentCompany)
-        container.set("EXPUNO", puno)
+    DBAction query = database.table("EXTAPR").index("00").selection("EXCONO", "EXPUNO", "EXAPPR", "EXASTS").build()
+    DBContainer container = query.getContainer()
+    container.set("EXCONO", currentCompany)
+    container.set("EXPUNO", puno)
 
-if (query.read(container)) {
-   puno1 = container.get("EXPUNO")
-   appr1 = container.get("EXAPPR")
-   asts1 = container.get("EXASTS")
+    if (query.read(container)) {
+      puno1 = container.get("EXPUNO")
+      appr1 = container.get("EXAPPR")
+      asts1 = container.get("EXASTS")
   
-    mi.outData.put("CONO" , YYCONO)
-    mi.outData.put("PUNO" , puno1)
-    mi.outData.put("APPR" , appr1)
-    mi.outData.put("ASTS" , asts1)
-    mi.write()
-  
-  
-}
+      mi.outData.put("CONO" , YYCONO)
+      mi.outData.put("PUNO" , puno1)
+      mi.outData.put("APPR" , appr1)
+      mi.outData.put("ASTS" , asts1)
+      mi.write()
+    }
   
   }
   

@@ -205,7 +205,7 @@ public class WeightAVE extends ExtendM3Transaction {
 	  
 	  int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
-  	int currentCompany = (Integer)program.getLDAZD().CONO
+  	int currentCompany = (Integer)program.getLDAZD().CONO;
 
     //check-validate if MWOHED record exists
     DBAction query = database.table("MWOHED").index("00").selection("VHCONO", "VHFACI", "VHPRNO", "VHMFNO").build();

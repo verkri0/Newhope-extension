@@ -87,26 +87,24 @@ public class WeightAVE extends ExtendM3Transaction {
   public void main() {
     
   	faci = mi.inData.get("FACI") == null ? '' : mi.inData.get("FACI").trim();
-  	if (faci == "?") {
-  	  faci = "";
-  	} 
+	  if (faci == "?") {
+	    faci = "";
+	  } 
   	
   	prno = mi.inData.get("PRNO") == null ? '' : mi.inData.get("PRNO").trim();
-  		if (prno == "?") {
-  	  prno = "";
-  	} 
+		if (prno == "?") {
+	    prno = "";
+	  } 
   
-  	
   	mfno = mi.inData.get("MFNO") == null ? '' : mi.inData.get("MFNO").trim();
-  		if (mfno == "?") {
-  	  mfno = "";
+		if (mfno == "?") {
+	    mfno = "";
   	} 
-  	
   	
   	opno = mi.inData.get("OPNO") == null ? '' : mi.inData.get("OPNO").trim();
   	if (opno == "?") {
-  	  opno = "0";
-  	} 
+	    opno = "0";
+	  } 
   	
   	acts = mi.inData.get("ACTS") == null ? '' : mi.inData.get("ACTS").trim();
   	if (acts == "?") {
@@ -178,38 +176,65 @@ public class WeightAVE extends ExtendM3Transaction {
   	  wg12 = "0";
   	} 
   	
-  	  if (opno.isEmpty()) { opno = "0";  }
-  	  if (acts.isEmpty()) { acts = "0";  }
-  	  if (spos.isEmpty()) { spos = "0";  }
+	  if (opno.isEmpty()) { opno = "0";  }
+	  if (acts.isEmpty()) { acts = "0";  }
+	  if (spos.isEmpty()) { spos = "0";  }
+	  if (wg01.isEmpty()) { wg01 = "0";  }
+	  if (wg02.isEmpty()) { wg02 = "0";  }
+	  if (wg03.isEmpty()) { wg03 = "0";  }
+	  if (wg04.isEmpty()) { wg04 = "0";  }
+	  if (wg05.isEmpty()) { wg05 = "0";  }
+	  if (wg06.isEmpty()) { wg06 = "0";  }
+	  if (wg07.isEmpty()) { wg07 = "0";  }
+	  if (wg08.isEmpty()) { wg08 = "0";  }
+	  if (wg09.isEmpty()) { wg09 = "0";  }
+	  if (wg10.isEmpty()) { wg10 = "0";  }
+	  if (wg11.isEmpty()) { wg11 = "0";  }
+	  if (wg12.isEmpty()) { wg12 = "0";  }
   	
-  	  if (wg01.isEmpty()) { wg01 = "0";  }
-  	  if (wg02.isEmpty()) { wg02 = "0";  }
-  	  if (wg03.isEmpty()) { wg03 = "0";  }
-  	  if (wg04.isEmpty()) { wg04 = "0";  }
-  	  if (wg05.isEmpty()) { wg05 = "0";  }
-  	  if (wg06.isEmpty()) { wg06 = "0";  }
-  	  if (wg07.isEmpty()) { wg07 = "0";  }
-  	  if (wg08.isEmpty()) { wg08 = "0";  }
-  	  if (wg09.isEmpty()) { wg09 = "0";  }
-  	  if (wg10.isEmpty()) { wg10 = "0";  }
-  	  if (wg11.isEmpty()) { wg11 = "0";  }
-  	  if (wg12.isEmpty()) { wg12 = "0";  }
-  	
-  	    writeEXTWGT(faci, prno, mfno, opno, acts, spos, wg01, wg02, wg03, wg04, wg05, wg06, wg07, wg08, wg09, wg10, wg11, wg12);
-    
+  	writeEXTWGT(faci, prno, mfno, opno, acts, spos, wg01, wg02, wg03, wg04, wg05, wg06, wg07, wg08, wg09, wg10, wg11, wg12);
   }
   
   
+  /*
+   * write record to EXTWGT
+   *
+  */
+  
   def writeEXTWGT(String faci, String prno, String mfno, String opno, String acts, String spos, String wg01, String wg02, String wg03, String wg04, String wg05, String wg06, String wg07, String wg08, String wg09, String wg10, String wg11, String wg12) {
-	  //Current date and time
+	  
+	  int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
+  	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
+  	int currentCompany = (Integer)program.getLDAZD().CONO
+
+    //check-validate if MWOHED record exists
+    DBAction query = database.table("MWOHED").index("00").selection("VHCONO", "VHFACI", "VHPRNO", "VHMFNO").build()
+    DBContainer container = query.getContainer()
+    container.set("VHCONO", currentCompany)
+    container.set("VHFACI", faci)
+    container.set("VHPRNO", prno)
+    container.set("VHMFNO", mfno)
+    
+    query.readAll(container, 4, releasedItemProcessor)
+  
+	}
+  
+  
+  Closure<?> releasedItemProcessor = { DBContainer container ->
+    cono = container.get("VHCONO")
+    faci = container.get("VHFACI")
+    prno = container.get("VHPRNO")
+    mfno = container.get("VHMFNO")
+  
+    DBAction actionEXTWGT = database.table("EXTWGT").build();
+  	DBContainer EXTWGT = actionEXTWGT.getContainer();
+  	 
   	int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
-  	
-  	  int currentCompany = (Integer)program.getLDAZD().CONO
-  	
-	  DBAction ActionEXTWGT = database.table("EXTWGT").build();
-  	DBContainer EXTWGT = ActionEXTWGT.getContainer();
-  	// QI Test information
+
+  	//Company
+  	int currentCompany = (Integer)program.getLDAZD().CONO
+  	 
   	EXTWGT.set("EXCONO", currentCompany);
   	EXTWGT.set("EXFACI", faci);
   	EXTWGT.set("EXPRNO", prno);
@@ -235,13 +260,15 @@ public class WeightAVE extends ExtendM3Transaction {
   	EXTWGT.set("EXCHNO", 0);
   	EXTWGT.set("EXCHID", program.getUser());
   	
-  	ActionEXTWGT.insert(EXTWGT, recordExists);
-	}
+  	actionEXTWGT.insert(EXTWGT, recordExists);
   
   
-  Closure recordExists = {
+  }
+  
+  
+   Closure recordExists = {
 	  mi.error("Record already exists");
   }
   
- 
+  
 }

@@ -123,7 +123,7 @@ public class AddPmtSplitTrns extends ExtendM3Transaction {
     currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
   
     // Get record from FAPIBH
-    DBAction queryFAPIBH = database.table("FAPIBH").index("00").selection("E5SPYN", "E5SUNO", "E5SINO", "E5SUPA","E5BIST","E5IBHE","E5IBLE", "E5IVDT", "E5DUDT", "E5ACDT","E5CUAM","E5CUCD","E5TEPY","E5CRTP","E5ARAT").build()
+    DBAction queryFAPIBH = database.table("FAPIBH").index("00").selection("E5SPYN","E5SUNO","E5SINO","E5SUPA","E5BIST","E5IBHE","E5IBLE","E5IVDT","E5DUDT","E5ACDT","E5CUAM","E5CUCD","E5TEPY","E5CRTP","E5ARAT").build()
     DBContainer FAPIBH = queryFAPIBH.getContainer();
     FAPIBH.set("E5CONO", XXCONO);
     FAPIBH.set("E5DIVI", divi);
@@ -152,7 +152,7 @@ public class AddPmtSplitTrns extends ExtendM3Transaction {
       return;
     }
     
-    DBAction queryCIDVEN = database.table("CIDVEN").index("00").selection("IISUCL").build()
+    DBAction queryCIDVEN = database.table("CIDVEN").index("00").selection("IISUCL").build();
     DBContainer CIDVEN = queryCIDVEN.getContainer();
     CIDVEN.set("IICONO", XXCONO);
     CIDVEN.set("IISUNO", suno);
@@ -256,8 +256,8 @@ public class AddPmtSplitTrns extends ExtendM3Transaction {
 	  
   	lineNo++;
   	
-	  DBAction ActionEXTSPL = database.table("EXTSPL").build();
-  	DBContainer EXTSPL = ActionEXTSPL.getContainer();
+	  DBAction actionEXTSPL = database.table("EXTSPL").build();
+  	DBContainer EXTSPL = actionEXTSPL.getContainer();
   	EXTSPL.set("EXCONO", XXCONO);
   	EXTSPL.set("EXDIVI", divi);
   	EXTSPL.set("EXINBN", inbn.toInteger());
@@ -273,7 +273,7 @@ public class AddPmtSplitTrns extends ExtendM3Transaction {
   	EXTSPL.set("EXLMDT", currentDate);
   	EXTSPL.set("EXCHNO", 0);
   	EXTSPL.set("EXCHID", program.getUser());
-  	ActionEXTSPL.insert(EXTSPL, recordExists);
+  	actionEXTSPL.insert(EXTSPL, recordExists);
 	}
 	/*
    * recordExists - return record already exists error message to the MI

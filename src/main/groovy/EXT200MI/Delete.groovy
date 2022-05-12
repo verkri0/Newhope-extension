@@ -21,15 +21,6 @@
  ***************************************************************
  */
 
-/*
- *Modification area - M3
- *Nbr               Date      User id     Description
- *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Write/Update EXTAPR records as a basis for PO authorization process
- *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
- *
- */
-
-
  import groovy.lang.Closure
  
  import java.time.LocalDate;
@@ -39,6 +30,14 @@
  import java.math.BigDecimal;
  import java.math.RoundingMode;
  import java.text.DecimalFormat;
+
+/*
+ *Modification area - M3
+ *Nbr               Date      User id     Description
+ *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Write/Update EXTAPR records as a basis for PO authorization process
+ *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
+ *
+ */
 
 
 public class Delete extends ExtendM3Transaction {
@@ -51,13 +50,8 @@ public class Delete extends ExtendM3Transaction {
   
   //Input fields
   private String puno;
-  private String appr;
-  private String asts;
+  
   private int XXCONO;
-  private String puno1;
-  private String appr1;
-  private String asts1;
-  private String YYCONO;
   
  /*
   * Delete Purchase Authorisation extension table row
@@ -73,56 +67,37 @@ public class Delete extends ExtendM3Transaction {
   }
   
   public void main() {
-    
-     
   	puno = mi.inData.get("PUNO") == null ? '' : mi.inData.get("PUNO").trim();
   	if (puno == "?") {
   	  puno = "";
   	}
-  	
-    XXCONO = (Integer)program.getLDAZD().CONO
 
   	// Validate input fields
-  	DBAction queryEXTAPR = database.table("EXTAPR").index("00").selection("EXPUNO").build()
+  	if (puno.isEmpty()) {
+      mi.error("PO number must be entered");
+      return;
+    }
+    XXCONO = (Integer)program.getLDAZD().CONO;
+    
+  	DBAction queryEXTAPR = database.table("EXTAPR").index("00").selection("EXPUNO").build();
     DBContainer EXTAPR = queryEXTAPR.getContainer();
     EXTAPR.set("EXCONO", XXCONO);
     EXTAPR.set("EXPUNO", puno);
-    if (!queryEXTAPR.read(EXTAPR)) {
+    if (!queryEXTAPR.readLock(EXTAPR, deleteCallBack)) {
       mi.error("Record does not exist");
       return;
     }
-  	
-    delete_EXTAPR(puno)
-   
   }
   
-
   /*
-  ** Delete Purchase Authorisation extension row from EXTAPR
+   * deleteCallBack - Callback function to delete EXTAPR table
+   *
   */
-  def delete_EXTAPR(String puno) {
-    
-    int currentCompany = (Integer)program.getLDAZD().CONO
-    YYCONO = currentCompany.toString();
-    
-    DBAction query = database.table("EXTAPR").index("00").selection("EXCONO", "EXPUNO", "EXAPPR", "EXASTS").build()
-    DBContainer container = query.getContainer()
-    container.set("EXCONO", currentCompany)
-    container.set("EXPUNO", puno)
-  	query.readLock(container, deleteCallBack)
-
-  }
-  
-
   Closure<?> deleteCallBack = { LockedResult lockedResult ->
 
-  lockedResult.delete()
+    lockedResult.delete();
   
-   mi.outData.put("CONO" , YYCONO)
-   mi.outData.put("PUNO" , puno)
-   mi.outData.put("MSG1" , puno + " has been deleted")
-   mi.write()
-  
+   
   }
   
 }

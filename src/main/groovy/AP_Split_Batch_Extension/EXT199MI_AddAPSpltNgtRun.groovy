@@ -72,15 +72,25 @@ public class AddAPSpltNgtRun extends ExtendM3Transaction {
       mi.error("Division must be entered");
       return;
     }
+    
     XXCONO= program.LDAZD.CONO;
+    
+    DBAction queryCMNDIV = database.table("CMNDIV").index("00").selection("CCDIVI").build();
+    DBContainer CMNDIV = queryCMNDIV.getContainer();
+    CMNDIV.set("CCCONO", XXCONO);
+    CMNDIV.set("CCDIVI", divi);
+    if(!queryCMNDIV.read(CMNDIV)) {
+      mi.error("Division does not exist.");
+      return;
+    } 
   	String referenceId = UUID.randomUUID().toString();
     setupData(referenceId);
     if (xnow.equals("1")) {
       def params = ["JOB": "EXT841", "TX30": "AP Split NightRun", "XCAT": "010", "SCTY": "1", "XNOW": "1", "UUID": referenceId]; // ingle run - now
-      miCaller.call("SHS010MI", "SchedXM3Job", params, { result -> })
+      miCaller.call("SHS010MI", "SchedXM3Job", params, { result -> });
     } else {
       def params = ["JOB": "EXT841", "TX30": "AP Split NightRun", "XCAT": "010", "SCTY": "2", "XNOW": "", "XEMO": "1", "XETU": "1", "XEWE": "1", "XETH": "1", "XEFR": "1", "XESA": "1", "XESU": "1","XJTM": "220000", "UUID": referenceId]; // run every night
-      miCaller.call("SHS010MI", "SchedXM3Job", params, { result -> })
+      miCaller.call("SHS010MI", "SchedXM3Job", params, { result -> });
     }
   }
   /*
@@ -95,8 +105,8 @@ public class AddAPSpltNgtRun extends ExtendM3Transaction {
     int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
   	
-    DBAction ActionEXTJOB = database.table("EXTJOB").build();
-  	DBContainer EXTJOB = ActionEXTJOB.getContainer();
+    DBAction actionEXTJOB = database.table("EXTJOB").build();
+  	DBContainer EXTJOB = actionEXTJOB.getContainer();
   	EXTJOB.set("EXCONO", XXCONO);
   	EXTJOB.set("EXRFID", referenceId);
   	EXTJOB.set("EXDATA", data);
@@ -105,6 +115,6 @@ public class AddAPSpltNgtRun extends ExtendM3Transaction {
   	EXTJOB.set("EXLMDT", currentDate);
   	EXTJOB.set("EXCHNO", 0);
   	EXTJOB.set("EXCHID", program.getUser());
-    ActionEXTJOB.insert(EXTJOB);
+    actionEXTJOB.insert(EXTJOB);
   }
 }

@@ -79,9 +79,9 @@ public class EXT841 extends ExtendM3Batch {
   private int currentTime
   
   public EXT841(LoggerAPI logger, DatabaseAPI database, BatchAPI batch, MICallerAPI miCaller, ProgramAPI program) {
-    this.logger = logger
-    this.database = database
-    this.batch = batch
+    this.logger = logger;
+    this.database = database;
+    this.batch = batch;
   	this.miCaller = miCaller;
   	this.program = program;
   }
@@ -92,16 +92,16 @@ public class EXT841 extends ExtendM3Batch {
     divi = "";
     
     if (!batch.getReferenceId().isPresent()) {
-      logger.error("Job data for job ${batch.getJobId()} is missing");
+      logger.debug("Job data for job ${batch.getJobId()} is missing");
       return;
     }
     
     // Get parameters from EXTJOB
     logger.debug("ReferenceId=" + batch.getReferenceId());
-    Optional<String> data = getJobData(batch.getReferenceId().get())
+    Optional<String> data = getJobData(batch.getReferenceId().get());
     
     if (!data.isPresent()) {
-      logger.error("Job reference Id ${batch.getReferenceId().get()} is passed, but data was not found")
+      logger.debug("Job reference Id ${batch.getReferenceId().get()} is passed, but data was not found");
       return
     }
     
@@ -151,11 +151,11 @@ public class EXT841 extends ExtendM3Batch {
     def queryEXTJOB = database.table("EXTJOB").index("00").selection("EXRFID", "EXJOID", "EXDATA").build();
     def EXTJOB = queryEXTJOB.createContainer();
     EXTJOB.set("EXCONO", XXCONO);
-    EXTJOB.set("EXRFID", referenceId)
+    EXTJOB.set("EXRFID", referenceId);
     if (queryEXTJOB.read(EXTJOB)) {
-      return Optional.of(EXTJOB.getString("EXDATA"))
+      return Optional.of(EXTJOB.getString("EXDATA"));
     }
-    return Optional.empty()
+    return Optional.empty();
   } 
   /*
 	 * initRun 
@@ -163,13 +163,13 @@ public class EXT841 extends ExtendM3Batch {
 	*/
   def initRun() {
     
-    DBAction ActionCUGEX1 = database.table("CUGEX1").index("00").selection("F1A030").build();
+    DBAction actionCUGEX1 = database.table("CUGEX1").index("00").selection("F1A030").build();
 
-    DBContainer CUGEX1 = ActionCUGEX1.getContainer();
+    DBContainer CUGEX1 = actionCUGEX1.getContainer();
     CUGEX1.set("F1CONO", XXCONO);
     CUGEX1.set("F1FILE", "APSPLIT");
     CUGEX1.set("F1PK01", "01");
-    ActionCUGEX1.readAll(CUGEX1, 3, 1, lstCUGEX1);
+    actionCUGEX1.readAll(CUGEX1, 3, 1, lstCUGEX1);
     logger.debug("noseries01=" + noseries01);
     
     String trans = "";
@@ -181,14 +181,14 @@ public class EXT841 extends ExtendM3Batch {
     }
     
     int noser = noseries01.toInteger() + 1;
-    def params01 = [ "FILE":"APSPLIT".toString(), "PK01": "01".toString(),"A030": noser.toString()] 
+    def params01 = [ "FILE":"APSPLIT".toString(), "PK01": "01".toString(),"A030": noser.toString()];
        
     def callback01 = {
        Map<String, String> response ->
        
     }
   
-    miCaller.call("CUSEXTMI", trans, params01, callback01)
+    miCaller.call("CUSEXTMI", trans, params01, callback01);
     
   }
   /*
@@ -278,7 +278,7 @@ public class EXT841 extends ExtendM3Batch {
         }
         // - Get first PUNO from FAPIBL
         puno = "";
-        DBAction queryFAPIBL = database.table("FAPIBL").index("00").selection("E6PUNO").build()
+        DBAction queryFAPIBL = database.table("FAPIBL").index("00").selection("E6PUNO").build();
         DBContainer FAPIBL = queryFAPIBL.getContainer();
         FAPIBL.set("E6CONO", XXCONO);
         FAPIBL.set("E6DIVI", divi);
@@ -336,7 +336,7 @@ public class EXT841 extends ExtendM3Batch {
       
     }
     
-    miCaller.call("GLS840MI","AddBatchHead", params, callback)
+    miCaller.call("GLS840MI","AddBatchHead", params, callback);
   }
   /*
    * create_GLS840MI_line - executing GLS840MI.AddBatchLine
@@ -362,7 +362,6 @@ public class EXT841 extends ExtendM3Batch {
 	  String dudt_line = record.DUDT;
 	  String ivam_line = record.IVAM;
 	  String vtcd_line = record.VTCD;
-	  //logger.debug("inbn=" + inbn + " line=" + lineNo + " rnno=" + rnno + " suno=" + suno_line + " spyn=" + spyn_line + " sino=" + sino_line + " ivdt=" + ivdt_line + " dudt=" + dudt_line + " ivam=" + ivam_line + " vtcd=" + vtcd_line);
 	  String vtam_line = record.VTAM;
 	  String cucd_line = record.CUCD;
 	  String crtp_line = record.CRTP;
@@ -382,14 +381,13 @@ public class EXT841 extends ExtendM3Batch {
     parm += ivdt_line + dudt_line + formatFixedLen(ivam_line, 17) + vtcd_line + formatFixedLen(vtam_line, 17) + cucd + formatFixedLen(crtp_line, 2) + formatFixedLen(arat_line, 13);
     parm += acdt_line + formatFixedLen(apcd_line, 10) + formatFixedLen(" ", 17) + formatFixedLen(cdp1_line, 6) + formatFixedLen(cdt1_line, 8) + formatFixedLen(cdp2_line, 6) + formatFixedLen(cdt2_line, 8) + formatFixedLen(cdp3_line, 6) + formatFixedLen(cdt3_line, 8) + formatFixedLen(puno_line, 10);
     logger.debug("parm=" + parm);
-    //def params1 = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1":noseries01, "LINE": "1".toString(), "PARM": "I10000000120000001230010007     10007     TEST460                 2021111520211115600              01                 AUD011            20211116 ] 
-    def params = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1": noseries01, "LINE": lineNo.toString(), "PARM": parm] 
+    def params = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1": noseries01, "LINE": lineNo.toString(), "PARM": parm]; 
     def callback = {
     Map<String, String> response ->
       
     }
     
-    miCaller.call("GLS840MI","AddBatchLine", params, callback)
+    miCaller.call("GLS840MI","AddBatchLine", params, callback);
   }
   /*
    * formatFixedLength
@@ -409,12 +407,12 @@ public class EXT841 extends ExtendM3Batch {
   */
   def update_GLS840MI_batch() {
     logger.debug("Call GLS840MI.UpdBatch...");
-    def params = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1":noseries01] 
+    def params = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1":noseries01]; 
     def callback = {
     Map<String, String> response ->
     
     }
-    miCaller.call("GLS840MI","UpdBatch", params, callback)
+    miCaller.call("GLS840MI","UpdBatch", params, callback);
   }
   /*
    * updateProcessFlag - update PROC in EXTSPL

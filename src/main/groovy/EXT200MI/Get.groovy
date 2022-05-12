@@ -21,16 +21,7 @@
  ***************************************************************
  */
 
-/*
- *Modification area - M3
- *Nbr               Date      User id     Description
- *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Write/Update EXTAPR records as a basis for PO authorization process
- *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
- *
- */
-
-import groovy.lang.Closure
- 
+ import groovy.lang.Closure
  import java.time.LocalDate;
  import java.time.LocalDateTime;
  import java.time.format.DateTimeFormatter;
@@ -39,6 +30,13 @@ import groovy.lang.Closure
  import java.math.RoundingMode;
  import java.text.DecimalFormat;
 
+/*
+ *Modification area - M3
+ *Nbr               Date      User id     Description
+ *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Write/Update EXTAPR records as a basis for PO authorization process
+ *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
+ *
+*/
 
 public class Get extends ExtendM3Transaction {
   private final MIAPI mi;
@@ -49,19 +47,10 @@ public class Get extends ExtendM3Transaction {
   private final IonAPI ion;
   
   //Input fields
-  private String cono;
   private String puno;
-  private String appr;
-  private String asts;
+  
   private int XXCONO;
-  
-  private String puno1;
-  private String appr1;
-  private String asts1;
-  
-  private String YYCONO;
    
-  
  /*
   * Get Purchase Authorisation extension table row
  */
@@ -76,41 +65,29 @@ public class Get extends ExtendM3Transaction {
   }
   
   public void main() {
-     
   	puno = mi.inData.get("PUNO") == null ? '' : mi.inData.get("PUNO").trim();
   	if (puno == "?") {
   	  puno = "";
   	}
-
-    getEXTAPR(puno)
-   
-  }
-  
-  /*
-  ** Get Purchase Authorisation extension table data from EXTAPR
-  */
-  def getEXTAPR(String puno) {
-    
-    int currentCompany = (Integer)program.getLDAZD().CONO
-    YYCONO = currentCompany.toString(); 
-    
-    DBAction query = database.table("EXTAPR").index("00").selection("EXCONO", "EXPUNO", "EXAPPR", "EXASTS").build()
-    DBContainer container = query.getContainer()
-    container.set("EXCONO", currentCompany)
-    container.set("EXPUNO", puno)
-
-    if (query.read(container)) {
-      puno1 = container.get("EXPUNO")
-      appr1 = container.get("EXAPPR")
-      asts1 = container.get("EXASTS")
-  
-      mi.outData.put("CONO" , YYCONO)
-      mi.outData.put("PUNO" , puno1)
-      mi.outData.put("APPR" , appr1)
-      mi.outData.put("ASTS" , asts1)
-      mi.write()
+    if (puno.isEmpty()) {
+      mi.error("PO number must be entered");
+      return;
     }
-  
+    
+    DBAction query = database.table("EXTAPR").index("00").selection("EXCONO", "EXPUNO", "EXAPPR", "EXASTS").build();
+    DBContainer container = query.getContainer();
+    container.set("EXCONO", XXCONO);
+    container.set("EXPUNO", puno);
+    if (query.read(container)) {
+      mi.outData.put("CONO", XXCONO.toString());
+      mi.outData.put("PUNO", container.get("EXPUNO").toString());
+      mi.outData.put("APPR", container.get("EXAPPR").toString());
+      mi.outData.put("ASTS", container.get("EXASTS").toString());
+      mi.write();
+    } else {
+      mi.error("Record does not exist in EXTAPR.");
+      return;
+    }
   }
   
 }

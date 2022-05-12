@@ -21,14 +21,6 @@
  ***************************************************************
  */
 
-/*
- *Modification area - M3
- *Nbr               Date      User id     Description
- *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Update EXTAPR records as a basis for PO authorization process
- *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
- *
- */
-
  import groovy.lang.Closure
 
  import java.time.LocalDate;
@@ -40,9 +32,16 @@
  import java.math.RoundingMode;
  import java.text.DecimalFormat;
 
+/*
+ *Modification area - M3
+ *Nbr               Date      User id     Description
+ *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Update EXTAPR records as a basis for PO authorization process
+ *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
+ *
+ */
 
  /*
-  * Write/Update Purchase Authorisation extension table
+  * Update Purchase Authorisation extension table
  */
   public class Update extends ExtendM3Transaction {
     
@@ -54,20 +53,11 @@
   private final IonAPI ion;
   
   //Input fields
-  private String cono;
   private String puno;
   private String appr;
   private String asts;
+  
   private int XXCONO;
-
-  private String puno1;
-  private String appr1;
-  private String asts1;
-  private String YYCONO;
-  private String YYUSID;
-  private int YYLMDT;
-  private int chno;
-   
   
   public Update(MIAPI mi, DatabaseAPI database, MICallerAPI miCaller, LoggerAPI logger, ProgramAPI program, IonAPI ion) {
     this.mi = mi;
@@ -81,37 +71,32 @@
   
   public void main() {
     
-     
-  	//cono = mi.inData.get("CONO") == null ? '' : mi.inData.get("CONO").trim();
-
   	puno = mi.inData.get("PUNO") == null ? '' : mi.inData.get("PUNO").trim();
   	if (puno == "?") {
   	  puno = "";
   	} 
-  	
   	asts = mi.inData.get("ASTS") == null ? '' : mi.inData.get("ASTS").trim();
   	if (asts == "?") {
   	  asts = "";
   	} 
-  		appr = mi.inData.get("APPR") == null ? '' : mi.inData.get("APPR").trim();
+  	appr = mi.inData.get("APPR") == null ? '' : mi.inData.get("APPR").trim();
   	if (appr == "?") {
   	  appr = "";
   	} 
-
-    
-			XXCONO = (Integer)program.LDAZD.CONO;
+		XXCONO = (Integer)program.LDAZD.CONO;
 	
-  	
-    if (!puno.isEmpty()) {
-      DBAction queryMPHEAD = database.table("MPHEAD").index("00").selection("IAPUNO").build()
-      DBContainer MPHEAD = queryMPHEAD.getContainer();
-      MPHEAD.set("IACONO", XXCONO);
-      MPHEAD.set("IAPUNO", puno);
-      if (!queryMPHEAD.read(MPHEAD)) {
-        mi.error("Purchase order number is invalid.");
-        return;
-      }
-    }  
+  	if (puno.isEmpty()) {
+      mi.error("PO number must be entered");
+      return;
+    }
+    DBAction queryMPHEAD = database.table("MPHEAD").index("00").selection("IAPUNO").build();
+    DBContainer MPHEAD = queryMPHEAD.getContainer();
+    MPHEAD.set("IACONO", XXCONO);
+    MPHEAD.set("IAPUNO", puno);
+    if (!queryMPHEAD.read(MPHEAD)) {
+      mi.error("PO number is invalid.");
+      return;
+    }
     
     if (!asts.isEmpty()) {
       if (!asts.equals("Authorised") && !asts.equals("Cancelled") && !asts.equals("Declined") && !asts.equals("Sent for approval") && !asts.equals("Cancelling workflow") && !asts.equals("Under authorisation")) {
@@ -119,7 +104,7 @@
         return;
       }
     }
-
+    // - validate approver
     if (!appr.isEmpty()) {
       DBAction queryCMNUSR = database.table("CMNUSR").index("00").selection("JUUSID").build()
       DBContainer CMNUSR = queryCMNUSR.getContainer();
@@ -132,46 +117,32 @@
       }
     }
     
-    update_EXTAPR(puno, asts, appr)
-   
+    DBAction query = database.table("EXTAPR").index("00").build();
+    DBContainer container = query.getContainer();
+    container.set("EXCONO", XXCONO);
+    container.set("EXPUNO", puno);
+    if (!query.readLock(container, updateCallBack)) {
+      mi.error("Record does not exists");
+      return;
+    }
   }
   
-  
- /*
-  * Update Purchase Authorisation extension table EXTAPR
- */
-  def update_EXTAPR(String puno, String asts, String appr) {
-    
-    int currentCompany = (Integer)program.getLDAZD().CONO
-    YYCONO = currentCompany.toString()
-    YYUSID = program.getLDAZD().USID
-    ZoneId zid = ZoneId.of("Australia/Sydney"); 
-    YYLMDT = LocalDate.now(zid).format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
-
-    DBAction query = database.table("EXTAPR").index("00").selection("EXCONO", "EXPUNO", "EXAPPR", "EXASTS", "EXCHNO").build()
-    DBContainer container = query.getContainer()
-    container.set("EXCONO", currentCompany)
-    container.set("EXPUNO", puno)
-    query.readLock(container, updateCallBack)
-
-  }
-  
+  /*
+   * updateCallBack - Callback function to update EXTAPR table
+   *
+   */
   Closure<?> updateCallBack = { LockedResult lockedResult ->
-    chno = lockedResult.get("EXCHNO").toString().toInteger() +1;
-    lockedResult.set("EXASTS", asts)
-    lockedResult.set("EXAPPR", appr)
-    lockedResult.set("EXCHNO", chno)
-    lockedResult.set("EXCHID", YYUSID)
-    lockedResult.set("EXLMDT", YYLMDT)
-    lockedResult.update()
+    
+    ZoneId zid = ZoneId.of("Australia/Sydney"); 
+    int currentDate = LocalDate.now(zid).format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
+    
+    lockedResult.set("EXASTS", asts);
+    lockedResult.set("EXAPPR", appr);
+    lockedResult.set("EXCHNO", lockedResult.get("EXCHNO").toString().toInteger() +1);
+    lockedResult.set("EXCHID", program.getUser());
+    lockedResult.set("EXLMDT", currentDate);
+    lockedResult.update();
   
-    mi.outData.put("CONO" , YYCONO)
-    mi.outData.put("PUNO" , puno)
-    mi.outData.put("APPR" , appr)
-    mi.outData.put("ASTS" , asts)
-    mi.write()
   
   }
-
-  
 }

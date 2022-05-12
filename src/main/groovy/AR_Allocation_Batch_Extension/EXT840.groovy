@@ -77,9 +77,9 @@ public class EXT840 extends ExtendM3Batch {
   private int lineNo;
   
   public EXT840(LoggerAPI logger, DatabaseAPI database, BatchAPI batch, MICallerAPI miCaller, ProgramAPI program) {
-    this.logger = logger
-    this.database = database
-    this.batch = batch
+    this.logger = logger;
+    this.database = database;
+    this.batch = batch;
   	this.miCaller = miCaller;
   	this.program = program;
   }
@@ -91,7 +91,7 @@ public class EXT840 extends ExtendM3Batch {
     inPYNO = "";
     
     if (!batch.getReferenceId().isPresent()) {
-      logger.error("Job data for job ${batch.getJobId()} is missing");
+      logger.debug("Job data for job ${batch.getJobId()} is missing");
       return;
     }
     
@@ -100,11 +100,11 @@ public class EXT840 extends ExtendM3Batch {
     Optional<String> data = getJobData(batch.getReferenceId().get())
     
     if (!data.isPresent()) {
-      logger.error("Job reference Id ${batch.getReferenceId().get()} is passed, but data was not found")
+      logger.debug("Job reference Id ${batch.getReferenceId().get()} is passed, but data was not found");
       return
     }
     
-    String rawData = data.get()
+    String rawData = data.get();
     String[] str;
     str = rawData.split(',');
     
@@ -123,8 +123,8 @@ public class EXT840 extends ExtendM3Batch {
     ExpressionFactory expression = database.getExpressionFactory("FSLEDG")
     expression = expression.eq("ESRECO", "0");
     expression = expression.and(expression.lt("ESCUAM", "0.00"));
-    DBAction query = database.table("FSLEDG").index("10").matching(expression).selection("ESCONO", "ESDIVI", "ESYEA4", "ESJRNO", "ESJSNO", "ESPYNO", "ESCUNO", "ESCINO", "ESCUAM", "ESRECO", "ESINYR", "ESTRCD").build()      
-    DBContainer container = query.getContainer()
+    DBAction query = database.table("FSLEDG").index("10").matching(expression).selection("ESCONO", "ESDIVI", "ESYEA4", "ESJRNO", "ESJSNO", "ESPYNO", "ESCUNO", "ESCINO", "ESCUAM", "ESRECO", "ESINYR", "ESTRCD").build();      
+    DBContainer container = query.getContainer();
     container.set("ESCONO", XXCONO);
     container.set("ESDIVI", divi);
     container.set("ESPYNO", inPYNO);
@@ -172,11 +172,11 @@ public class EXT840 extends ExtendM3Batch {
     def queryEXTJOB = database.table("EXTJOB").index("00").selection("EXRFID", "EXJOID", "EXDATA").build();
     def EXTJOB = queryEXTJOB.createContainer();
     EXTJOB.set("EXCONO", XXCONO);
-    EXTJOB.set("EXRFID", referenceId)
+    EXTJOB.set("EXRFID", referenceId);
     if (queryEXTJOB.read(EXTJOB)) {
-      return Optional.of(EXTJOB.getString("EXDATA"))
+      return Optional.of(EXTJOB.getString("EXDATA"));
     }
-    return Optional.empty()
+    return Optional.empty();
   } 
   
   /*
@@ -185,13 +185,13 @@ public class EXT840 extends ExtendM3Batch {
 	*/
   def initRun() {
     
-    DBAction ActionCUGEX1 = database.table("CUGEX1").index("00").selection("F1A030").build();
+    DBAction actionCUGEX1 = database.table("CUGEX1").index("00").selection("F1A030").build();
 
-    DBContainer CUGEX1 = ActionCUGEX1.getContainer();
+    DBContainer CUGEX1 = actionCUGEX1.getContainer();
     CUGEX1.set("F1CONO", XXCONO);
     CUGEX1.set("F1FILE", "ARRUN");
     CUGEX1.set("F1PK01", "01");
-    ActionCUGEX1.readAll(CUGEX1, 3, 1, lstCUGEX1);
+    actionCUGEX1.readAll(CUGEX1, 3, 1, lstCUGEX1);
     logger.debug("noseries01=" + noseries01);
     
     String trans = "";
@@ -203,14 +203,14 @@ public class EXT840 extends ExtendM3Batch {
     }
     
     int noser = noseries01.toInteger() + 1;
-    def params01 = [ "FILE":"ARRUN".toString(), "PK01": "01".toString(),"A030": noser.toString()] 
+    def params01 = [ "FILE":"ARRUN".toString(), "PK01": "01".toString(),"A030": noser.toString()]; 
        
     def callback01 = {
        Map<String, String> response ->
        
     }
   
-    miCaller.call("CUSEXTMI", trans, params01, callback01)
+    miCaller.call("CUSEXTMI", trans, params01, callback01);
     
   }
   
@@ -250,7 +250,7 @@ public class EXT840 extends ExtendM3Batch {
     oFNCN = "";
     oVTXT = "";
     
-    DBAction queryFGLEDG = database.table("FGLEDG").index("00").selection("EGCONO", "EGDIVI", "EGJRNO", "EGJSNO", "EGYEA4", "EGFEID", "EGFNCN","EGVTXT").build()
+    DBAction queryFGLEDG = database.table("FGLEDG").index("00").selection("EGCONO", "EGDIVI", "EGJRNO", "EGJSNO", "EGYEA4", "EGFEID", "EGFNCN","EGVTXT").build();
     DBContainer FGLEDG = queryFGLEDG.getContainer();
     FGLEDG.set("EGCONO", XXCONO);
     FGLEDG.set("EGDIVI", divi);
@@ -301,7 +301,7 @@ public class EXT840 extends ExtendM3Batch {
     oEXIN = oCINO;
     oINPX = "";
     // Read OINVOH to get the IVNO
-    DBAction queryOINVOH = database.table("OINVOH").index("42").selection("UHEXIN","UHIVNO").build()
+    DBAction queryOINVOH = database.table("OINVOH").index("42").selection("UHEXIN","UHIVNO").build();
     DBContainer OINVOH = queryOINVOH.getContainer();
     OINVOH.set("UHCONO", XXCONO);
     OINVOH.set("UHDIVI", divi);
@@ -315,7 +315,7 @@ public class EXT840 extends ExtendM3Batch {
     }
     oORNO = "";
     // Read OINVOL to get the ORNO
-    DBAction queryOINVOL = database.table("OINVOL").index("00").selection("ONORNO").build()
+    DBAction queryOINVOL = database.table("OINVOL").index("00").selection("ONORNO").build();
     DBContainer OINVOL = queryOINVOL.getContainer();
     OINVOL.set("ONCONO", XXCONO);
     OINVOL.set("ONDIVI", divi);
@@ -330,7 +330,7 @@ public class EXT840 extends ExtendM3Batch {
     }
     oYREF = "";
     // Read OOHEAD to get YREF
-    DBAction queryOOHEAD = database.table("OOHEAD").index("00").selection("OAYREF").build()
+    DBAction queryOOHEAD = database.table("OOHEAD").index("00").selection("OAYREF").build();
     DBContainer OOHEAD = queryOOHEAD.getContainer();
     OOHEAD.set("OACONO", XXCONO);
     OOHEAD.set("OAORNO", oORNO);
@@ -341,11 +341,10 @@ public class EXT840 extends ExtendM3Batch {
     if (oYREF.isEmpty()) {
       return;
     }
-    //logger.debug("YREF=" + oYREF);
     ExpressionFactory expression = database.getExpressionFactory("FSLEDG");
     expression = expression.eq("ESRECO", "0");
     expression = expression.and(expression.gt("ESCUAM", "0.00"));
-    DBAction queryFSLEDG = database.table("FSLEDG").index("13").matching(expression).selection("ESDIVI", "ESPYNO", "ESCINO", "ESCUNO", "ESCUAM", "ESINYR").build()
+    DBAction queryFSLEDG = database.table("FSLEDG").index("13").matching(expression).selection("ESDIVI", "ESPYNO", "ESCINO", "ESCUNO", "ESCUAM", "ESINYR").build();
     DBContainer FSLEDG = queryFSLEDG.getContainer();
     FSLEDG.set("ESCONO", XXCONO);
     FSLEDG.set("ESDIVI", divi);
@@ -394,7 +393,7 @@ public class EXT840 extends ExtendM3Batch {
     } else if (Math.abs(savedCUAM.toDouble()) < cuam2.toDouble()) {
       amt = Math.abs(savedCUAM.toDouble());
     } else {
-      amt = cuam2.toDouble()
+      amt = cuam2.toDouble();
     }
     
     def map = [PYNO: savedPYNO, CUNO: savedCUNO, CINO: savedCINO, CUAM: (-amt).toString(), INYR: savedINYR, PYNO2: pyno2, CUNO2: cuno2, CINO2: cino2, CUAM2: amt.toString(), INYR2: inyr2];
@@ -415,7 +414,7 @@ public class EXT840 extends ExtendM3Batch {
       ExpressionFactory expression = database.getExpressionFactory("FSLEDG");
       expression = expression.eq("ESRECO", "0");
       expression = expression.and(expression.gt("ESCUAM", "0.00"));
-      DBAction queryFSLEDG = database.table("FSLEDG").index("13").matching(expression).selection("ESDIVI", "ESPYNO", "ESCINO", "ESCUNO", "ESCUAM", "ESINYR").build()
+      DBAction queryFSLEDG = database.table("FSLEDG").index("13").matching(expression).selection("ESDIVI", "ESPYNO", "ESCINO", "ESCUNO", "ESCUAM", "ESINYR").build();
       DBContainer FSLEDG = queryFSLEDG.getContainer();
       FSLEDG.set("ESCONO", XXCONO);
       FSLEDG.set("ESDIVI", divi);
@@ -502,7 +501,7 @@ public class EXT840 extends ExtendM3Batch {
     } else if (Math.abs(savedCUAM.toDouble()) < cuam2.toDouble()) {
       amt = Math.abs(savedCUAM.toDouble());
     } else {
-      amt = cuam2.toDouble()
+      amt = cuam2.toDouble();
     }
     
     def map = [PYNO: savedPYNO, CUNO: savedCUNO, CINO: savedCINO, CUAM: (-1).toString(), INYR: savedINYR, PYNO2: pyno2, CUNO2: cuno2, CINO2: cino2, CUAM2: amt.toString(), INYR2: inyr2];
@@ -528,7 +527,7 @@ public class EXT840 extends ExtendM3Batch {
        
     }
     
-    miCaller.call("GLS840MI","AddBatchHead", params, callback)
+    miCaller.call("GLS840MI","AddBatchHead", params, callback);
   }
   
    /*
@@ -543,14 +542,13 @@ public class EXT840 extends ExtendM3Batch {
     String parm = "I1" + noseries01 + "00000001" + divi + formatFixedLen(cuno, 10) + formatFixedLen(pyno, 10) + formatFixedLen(cino, 15); 
     parm += inyr + formatFixedLen(cuam, 17) + currentDate.toString() + "ARNightRun";
     logger.debug("parm=" + parm);
-    //def params1 = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1":noseries01, "LINE": "1".toString(), "PARM": "I11000000010000000130051802C    500284    015418         2021464.05           20220214ARNightRun".toString() ] 
-    def params = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1": noseries01, "LINE": line.toString(), "PARM": parm] 
+    def params = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1": noseries01, "LINE": line.toString(), "PARM": parm]; 
     def callback = {
     Map<String, String> response ->
        
     }
     
-    miCaller.call("GLS840MI","AddBatchLine", params, callback)
+    miCaller.call("GLS840MI","AddBatchLine", params, callback);
   }
   /*
    * formatFixedLength
@@ -570,14 +568,14 @@ public class EXT840 extends ExtendM3Batch {
   */
   def update_GLS840MI_batch() {
     logger.debug("Call GLS840MI.UpdBatch...");
-    def params = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1":noseries01] 
+    def params = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1":noseries01]; 
     def callback = {
     Map<String, String> response ->
-      logger.debug("Response = ${response}")
+      logger.debug("Response = ${response}");
     
     }
     
-    miCaller.call("GLS840MI","UpdBatch", params, callback)
+    miCaller.call("GLS840MI","UpdBatch", params, callback);
   
   }
 }

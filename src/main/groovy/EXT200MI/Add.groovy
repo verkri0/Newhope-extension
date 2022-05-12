@@ -21,14 +21,6 @@
  ***************************************************************
  */
 
-/*
- *Modification area - M3
- *Nbr               Date      User id     Description
- *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Write/Update EXTAPR records as a basis for PO authorization process
- *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
- *
- */
-
  import groovy.lang.Closure
  
  import java.time.LocalDate;
@@ -41,6 +33,17 @@
  import java.text.DecimalFormat;
 
 
+/*
+ *Modification area - M3
+ *Nbr               Date      User id     Description
+ *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Write/Update EXTAPR records as a basis for PO authorization process
+ *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
+ *
+ */
+
+/*
+* - Write the record to EXTAPR
+*/
 public class Add extends ExtendM3Transaction {
   private final MIAPI mi;
   private final DatabaseAPI database;
@@ -83,11 +86,9 @@ public class Add extends ExtendM3Transaction {
   	if (asts == "?") {
   	  asts = "";
   	} 
-
 		XXCONO = (Integer)program.LDAZD.CONO;
 
     // Validate input fields  	
-    
 		if (puno.isEmpty()) {
       mi.error("Purchase Order must be entered");
       return;
@@ -96,27 +97,23 @@ public class Add extends ExtendM3Transaction {
       mi.error("Authorisation status must be entered");
       return;
     }
-
-    if (!puno.isEmpty()) {
-      DBAction queryMPHEAD = database.table("MPHEAD").index("00").selection("IAPUNO").build()
-      DBContainer MPHEAD = queryMPHEAD.getContainer();
-      MPHEAD.set("IACONO", XXCONO);
-      MPHEAD.set("IAPUNO", puno);
-      if (!queryMPHEAD.read(MPHEAD)) {
-        mi.error("Purchase order number is invalid.");
-        return;
-      }
-    }  
-    
-    if (!asts.isEmpty()) {
-      if (!asts.equals("Authorised") && !asts.equals("Cancelled") && !asts.equals("Declined") && !asts.equals("Sent for approval") && !asts.equals("Cancelling workflow") && !asts.equals("Under authorisation")) {
-        mi.error("Invalid authorisation status");
-        return;
-      }
+    // - validate puno
+    DBAction queryMPHEAD = database.table("MPHEAD").index("00").selection("IAPUNO").build();
+    DBContainer MPHEAD = queryMPHEAD.getContainer();
+    MPHEAD.set("IACONO", XXCONO);
+    MPHEAD.set("IAPUNO", puno);
+    if (!queryMPHEAD.read(MPHEAD)) {
+      mi.error("Purchase order number is invalid.");
+      return;
     }
 
+    if (!asts.equals("Authorised") && !asts.equals("Cancelled") && !asts.equals("Declined") && !asts.equals("Sent for approval") && !asts.equals("Cancelling workflow") && !asts.equals("Under authorisation")) {
+      mi.error("Invalid authorisation status");
+      return;
+    }
+    // - validate approver
     if (!appr.isEmpty()) {
-      DBAction queryCMNUSR = database.table("CMNUSR").index("00").selection("JUUSID").build()
+      DBAction queryCMNUSR = database.table("CMNUSR").index("00").selection("JUUSID").build();
       DBContainer CMNUSR = queryCMNUSR.getContainer();
       CMNUSR.set("JUCONO", 0);
       CMNUSR.set("JUDIVI", "");
@@ -126,26 +123,20 @@ public class Add extends ExtendM3Transaction {
         return;
       }
     }
-    
-     writeEXTAPR(puno, appr, asts);
-    
+    writeEXTAPR(puno, appr, asts);
   }
-  
-  
   /*
-  ** Write Purchase Authorisation extension table EXTAPR
+  * Write Purchase Authorisation extension table EXTAPR
+  *
   */
   def writeEXTAPR(String puno, String appr, String asts) {
 	  //Current date and time
   	int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
   	
-  	int currentCompany = (Integer)program.getLDAZD().CONO
-  	
 	  DBAction actionEXTAPR = database.table("EXTAPR").build();
   	DBContainer EXTAPR = actionEXTAPR.getContainer();
-
-  	EXTAPR.set("EXCONO", currentCompany);
+  	EXTAPR.set("EXCONO", XXCONO);
   	EXTAPR.set("EXPUNO", puno);
   	EXTAPR.set("EXAPPR", appr);
   	EXTAPR.set("EXASTS", asts);
@@ -154,14 +145,13 @@ public class Add extends ExtendM3Transaction {
   	EXTAPR.set("EXLMDT", currentDate);
   	EXTAPR.set("EXCHNO", 0);
   	EXTAPR.set("EXCHID", program.getUser());
-  	
   	actionEXTAPR.insert(EXTAPR, recordExists);
 	}
-  
-  
+  /*
+   * recordExists - return record already exists error message to the MI
+   *
+  */
   Closure recordExists = {
 	  mi.error("Record already exists");
   }
-  
-  
 }

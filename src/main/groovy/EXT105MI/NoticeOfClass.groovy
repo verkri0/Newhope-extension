@@ -25,10 +25,9 @@
  *Modification area - M3
  *Nbr               Date      User id     Description
  *ABF_R_105        20220405  RDRIESSEN   Mods BF0105- Write to extension file EXTCLS as a basis for a Notice of Classification Report
+ *ABF_R_105        20220511  KVERCO      Update for XtendM3 review feedback
  *
  */
-
-
 
  import groovy.lang.Closure
  
@@ -40,7 +39,10 @@
  import java.math.RoundingMode;
  import java.text.DecimalFormat;
 
-public class NoticeOfClass extends ExtendM3Transaction {
+/*
+ * Populate table EXTCLS for Notice of Classification report
+ */
+  public class NoticeOfClass extends ExtendM3Transaction {
   private final MIAPI mi;
   private final DatabaseAPI database;
   private final MICallerAPI miCaller;
@@ -99,67 +101,105 @@ public class NoticeOfClass extends ExtendM3Transaction {
   
   public void main() {
     
-  	cono = mi.inData.get("CONO") == null ? '' : mi.inData.get("CONO").trim();
+    cono = mi.inData.get("CONO") == null ? '' : mi.inData.get("CONO").trim();
   	if (cono == "?") {
   	  cono = "";
   	} 
   	
   	divi = mi.inData.get("DIVI") == null ? '' : mi.inData.get("DIVI").trim();
-  		if (divi == "?") {
+  	if (divi == "?") {
   	  divi = "";
   	} 
   	
   	itno = mi.inData.get("ITNO") == null ? '' : mi.inData.get("ITNO").trim();
-  		if (itno == "?") {
+  	if (itno == "?") {
   	  itno = "";
   	}	
   	
   	bref = mi.inData.get("BREF") == null ? '' : mi.inData.get("BREF").trim();
-  		if (bref == "?") {
+  	if (bref == "?") {
   	  bref = "";
   	} 
+
+  	//Validate input fields
+    if (!cono.isEmpty()) {
+		  if (cono.isInteger()){
+			  XXCONO= cono.toInteger();
+			} else {
+				mi.error("Company " + cono + " is invalid");
+				return;
+		}
+		} else {
+			XXCONO= program.LDAZD.CONO;
+		}
+		
+		if (divi.isEmpty()) {
+		  program.LDAZD.DIVI;
+		} else {
+		  DBAction queryCMNDIV = database.table("CMNDIV").index("00").selection("CCDIVI").build();
+      DBContainer CMNDIV = queryCMNDIV.getContainer();
+      CMNDIV.set("CCCONO", XXCONO);
+      CMNDIV.set("CCDIVI", divi);
+      if(!queryCMNDIV.read(CMNDIV)) {
+        mi.error("Division does not exist.");
+        return;
+      } 
+		}
   	
-        deleteEXTCLS(cono, divi, itno, bref);
-  	    writeEXTCLS(cono, divi, itno, bref);
-  	    writeLOTREF(cono, divi, itno, bref);
-      }
+  	// - validate itno
+    DBAction queryMITMAS = database.table("MITMAS").index("00").selection("MMITNO").build();
+    DBContainer MITMAS = queryMITMAS.getContainer();
+    MITMAS.set("MMCONO", XXCONO);
+    MITMAS.set("MMITNO", itno);
+    if (!queryMITMAS.read(MITMAS)) {
+      mi.error("Item no is invalid.");
+      return;
+    }
+  	if (bref.isEmpty()) {
+  	  mi.error("BREF must be entered.");
+      return;
+  	}
+    deleteEXTCLS(cono, divi, itno, bref);
+  	writeEXTCLS(cono, divi, itno, bref);
+  	writeLOTREF(cono, divi, itno, bref);
+  }
   
-  
-  // clear this transaction workfile before re-writing the requested report with report entries whlo/suno/sudo
-  
-    def deleteEXTCLS(String cono, String divi, String itno, String bref) {
-    
-    int currentCompany = (Integer)program.getLDAZD().CONO
+ 
+/*
+ * deleteEXTCLS - delete existing records with key cono-divi-itno-bref
+ */
+  def deleteEXTCLS(String cono, String divi, String itno, String bref) {
     
     DBAction queryEXTCLS = database.table("EXTCLS").index("00").selection("EXCONO", "EXDIVI", "EXITNO", "EXBREF").build();
     DBContainer EXTCLS = queryEXTCLS.getContainer();
-                EXTCLS.set("EXCONO", currentCompany);
-                EXTCLS.set("EXDIVI", divi); 
-                EXTCLS.set("EXITNO", itno);
-                EXTCLS.set("EXBREF", bref);
-queryEXTCLS.readAllLock(EXTCLS, 4, deleteEXTCLS);
-}
+    EXTCLS.set("EXCONO", XXCONO);
+    EXTCLS.set("EXDIVI", divi); 
+    EXTCLS.set("EXITNO", itno);
+    EXTCLS.set("EXBREF", bref);
+    queryEXTCLS.readAllLock(EXTCLS, 4, deleteEXTCLS);
+  }
+    
 /*
-* deleteEXTCLS - Callback function
-*
-*/
-Closure<?> deleteEXTCLS = { LockedResult EXTCLS ->
-EXTCLS.delete();
-}
-  
-  
-  def writeEXTCLS(String cono, String divi, String itno, String bref) {
-	  //Current date and time
-  	int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
-  	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
-  	
-  	  int currentCompany = (Integer)program.getLDAZD().CONO
+ * deleteEXTCLS - Callback function
+ */
+  Closure<?> deleteEXTCLS = { LockedResult EXTCLS ->
+    EXTCLS.delete();
+  }
 
-  	DBAction ActionEXTCLS = database.table("EXTCLS").build();
-  	DBContainer EXTCLS = ActionEXTCLS.getContainer();
+/*
+ * write EXTCLS - write records to EXTCLS 
+ */
+  def writeEXTCLS(String cono, String divi, String itno, String bref) {
+	
+	  //Current date and time
+    int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
+  	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
+  
+  	DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	DBContainer EXTCLS = actionEXTCLS.getContainer();
   
     // write to transaction file EXTCLS as main table for Notice of Classification Report
-  	EXTCLS.set("EXCONO", currentCompany);
+  	EXTCLS.set("EXCONO", XXCONO);
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXBREF", bref);
   	EXTCLS.set("EXITNO", itno);
@@ -170,11 +210,10 @@ EXTCLS.delete();
   	EXTCLS.set("EXLMDT", currentDate);
   	EXTCLS.set("EXCHNO", 0);
   	EXTCLS.set("EXCHID", program.getUser());
-  	
-  	ActionEXTCLS.insert(EXTCLS, recordExists);
+  	actionEXTCLS.insert(EXTCLS, recordExists);
   	
   	// write to transaction file EXTCLS as main table for Notice of Classification Report
-  	EXTCLS.set("EXCONO", currentCompany);
+  	EXTCLS.set("EXCONO", XXCONO);
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXBREF", bref);
   	EXTCLS.set("EXITNO", itno);
@@ -186,11 +225,10 @@ EXTCLS.delete();
   	EXTCLS.set("EXLMDT", currentDate);
   	EXTCLS.set("EXCHNO", 0);
   	EXTCLS.set("EXCHID", program.getUser());
-  	
-  	ActionEXTCLS.insert(EXTCLS, recordExists);
+  	actionEXTCLS.insert(EXTCLS, recordExists);
   	
   	// write to transaction file EXTCLS as main table for Notice of Classification Report
-  	EXTCLS.set("EXCONO", currentCompany);
+  	EXTCLS.set("EXCONO", XXCONO);
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXBREF", bref);
   	EXTCLS.set("EXITNO", itno);
@@ -201,11 +239,10 @@ EXTCLS.delete();
   	EXTCLS.set("EXLMDT", currentDate);
   	EXTCLS.set("EXCHNO", 0);
   	EXTCLS.set("EXCHID", program.getUser());
-  	
-  	ActionEXTCLS.insert(EXTCLS, recordExists);
+  	actionEXTCLS.insert(EXTCLS, recordExists);
   	
   	// write to transaction file EXTCLS as main table for Notice of Classification Report
-  	EXTCLS.set("EXCONO", currentCompany);
+  	EXTCLS.set("EXCONO", XXCONO);
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXBREF", bref);
   	EXTCLS.set("EXITNO", itno);
@@ -216,151 +253,137 @@ EXTCLS.delete();
   	EXTCLS.set("EXLMDT", currentDate);
   	EXTCLS.set("EXCHNO", 0);
   	EXTCLS.set("EXCHID", program.getUser());
-  	
-  	ActionEXTCLS.insert(EXTCLS, recordExists);
+  	actionEXTCLS.insert(EXTCLS, recordExists);
   	
 	}
   
-  Closure recordExists = {
-	  
-  }
-  
-  
+ 
+/*
+ * Write data to Lot Reference extension table, EXTCLS
+ *
+ */ 
   def writeLOTREF(String cono, String divi, String itno,  String bref) {
 	  
 	  int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
-  	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
-  	
-  	int currentCompany = (Integer)program.getLDAZD().CONO
+    int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
+    int currentCompany = (Integer)program.getLDAZD().CONO;
 	  
-	   lstTestResults_Range = new ArrayList();
+	  lstTestResults_Range = new ArrayList();
   		
-  		Map<String,String> headers = ["Accept": "application/json"]
-      Map<String,String> params = [ "LMITNO":itno, "LMBREF":bref, "maxrecs": "99"];
-      String url = "/M3/m3api-rest/v2/execute/CMS100MI/Lst_ZATS101C";
+  	Map<String,String> headers = ["Accept": "application/json"];
+    Map<String,String> params = [ "LMITNO":itno, "LMBREF":bref, "maxrecs": "99"];
+    String url = "/M3/m3api-rest/v2/execute/CMS100MI/Lst_ZATS101C";
       
-      int nobins = 0;
+    int nobins = 0;
       
-      IonResponse response = ion.get(url, headers, params);
-      if (response.getStatusCode() == 200) {
-        JsonSlurper jsonSlurper = new JsonSlurper();
-        Map<String, Object> miResponse = (Map<String, Object>) jsonSlurper.parseText(response.getContent())
-        ArrayList<Map<String, Object>> results = (ArrayList<Map<String, Object>>) miResponse.get("results");
+    IonResponse response = ion.get(url, headers, params);
+    if (response.getStatusCode() == 200) {
+      JsonSlurper jsonSlurper = new JsonSlurper();
+      Map<String, Object> miResponse = (Map<String, Object>) jsonSlurper.parseText(response.getContent());
+      ArrayList<Map<String, Object>> results = (ArrayList<Map<String, Object>>) miResponse.get("results");
        
-        ArrayList<Map<String, String>> recordList = (ArrayList<Map<String, String>>) results[0]["records"];
-        recordList.eachWithIndex { it, index ->
-          Map<String, String> recordQMSTRS = (Map<String, String>) it
-          if (lstTestResults_Range.size() < 99) {
-    	       suno = recordQMSTRS.ORPAN1;
-    	       sunm = recordQMSTRS.IDSUNM;
-    	       sudo = recordQMSTRS.ORPAN2;
-    	       nobins = nobins + 1;
-    	       bins = recordQMSTRS.ORPANR;
-    	       atnr = recordQMSTRS.LMATNR;
+      ArrayList<Map<String, String>> recordList = (ArrayList<Map<String, String>>) results[0]["records"];
+      recordList.eachWithIndex { it, index ->
+        Map<String, String> recordQMSTRS = (Map<String, String>) it;
+        if (lstTestResults_Range.size() < 99) {
+    	    suno = recordQMSTRS.ORPAN1;
+    	    sunm = recordQMSTRS.IDSUNM;
+    	    sudo = recordQMSTRS.ORPAN2;
+    	    nobins = nobins + 1;
+    	    bins = recordQMSTRS.ORPANR;
+    	    atnr = recordQMSTRS.LMATNR;
     	    
-    DBAction ActionEXTCLS = database.table("EXTCLS").build();
-  	DBContainer EXTCLS = ActionEXTCLS.getContainer();
-  	
-    EXTCLS.set("EXCONO", currentCompany);
-  	EXTCLS.set("EXDIVI", divi);
-  	EXTCLS.set("EXBREF", bref);
-  	EXTCLS.set("EXITNO", itno);
-  	EXTCLS.set("EXCAT1", 'J');
-  	EXTCLS.set("EXREF1", 'BIN:');
-  	EXTCLS.set("EXREF2", bins);
-  	EXTCLS.set("EXREF3", '');
-  	EXTCLS.set("EXRGDT", currentDate);
-  	EXTCLS.set("EXRGTM", currentTime);
-  	EXTCLS.set("EXLMDT", currentDate);
-  	EXTCLS.set("EXCHNO", 0);
-  	EXTCLS.set("EXCHID", program.getUser());
+          DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	      DBContainer EXTCLS = actionEXTCLS.getContainer();
         
-      ActionEXTCLS.insert(EXTCLS, recordExists);
-    	     
-          }
-        }
+          EXTCLS.set("EXCONO", XXCONO);
+  	      EXTCLS.set("EXDIVI", divi);
+  	      EXTCLS.set("EXBREF", bref);
+  	      EXTCLS.set("EXITNO", itno);
+  	      EXTCLS.set("EXCAT1", 'J');
+  	      EXTCLS.set("EXREF1", 'BIN:');
+  	      EXTCLS.set("EXREF2", bins);
+  	      EXTCLS.set("EXREF3", '');
+  	      EXTCLS.set("EXRGDT", currentDate);
+  	      EXTCLS.set("EXRGTM", currentTime);
+  	      EXTCLS.set("EXLMDT", currentDate);
+  	      EXTCLS.set("EXCHNO", 0);
+  	      EXTCLS.set("EXCHID", program.getUser());
+          actionEXTCLS.insert(EXTCLS, recordExists);
+    	  }
       }
-	  
-	  
-	    lstTestResults_Range01 = new ArrayList();
+    }
+	
+	  lstTestResults_Range01 = new ArrayList();
   		
-  		Map<String,String> headers01 = ["Accept": "application/json"]
-      Map<String,String> params01 = [ "AGATNR":atnr, "maxrecs": "700"];
-      String url01 = "/M3/m3api-rest/v2/execute/CMS100MI/Lst_ZATS100";
+    Map<String,String> headers01 = ["Accept": "application/json"];
+    Map<String,String> params01 = [ "AGATNR":atnr, "maxrecs": "700"];
+    String url01 = "/M3/m3api-rest/v2/execute/CMS100MI/Lst_ZATS100";
       
-      IonResponse response01 = ion.get(url01, headers01, params01);
-      if (response01.getStatusCode() == 200) {
-        JsonSlurper jsonSlurper = new JsonSlurper();
-        Map<String, Object> miResponse = (Map<String, Object>) jsonSlurper.parseText(response01.getContent())
-        ArrayList<Map<String, Object>> results = (ArrayList<Map<String, Object>>) miResponse.get("results");
+    IonResponse response01 = ion.get(url01, headers01, params01);
+    if (response01.getStatusCode() == 200) {
+      JsonSlurper jsonSlurper = new JsonSlurper();
+      Map<String, Object> miResponse = (Map<String, Object>) jsonSlurper.parseText(response01.getContent());
+      ArrayList<Map<String, Object>> results = (ArrayList<Map<String, Object>>) miResponse.get("results");
        
-        ArrayList<Map<String, String>> recordList = (ArrayList<Map<String, String>>) results[0]["records"];
-        recordList.eachWithIndex { it, index ->
-          Map<String, String> recordQMSTRS = (Map<String, String>) it
-          if (lstTestResults_Range01.size() < 99) {
-    	       atid = recordQMSTRS.AGATID;
-    	       atva = recordQMSTRS.AGATVA;
-    	       tx30 = recordQMSTRS.AATX30;
-    	       tx15 = recordQMSTRS.PFTX15;
-    	       tx31 = recordQMSTRS.PFTX30;
-    	   
-    	   
-    	   if(atid == 'DRF01' ) {
-    	     
-    DBAction ActionEXTCLS = database.table("EXTCLS").build();
-  	DBContainer EXTCLS = ActionEXTCLS.getContainer();
+      ArrayList<Map<String, String>> recordList = (ArrayList<Map<String, String>>) results[0]["records"];
+      recordList.eachWithIndex { it, index ->
+        Map<String, String> recordQMSTRS = (Map<String, String>) it;
+        if (lstTestResults_Range01.size() < 99) {
+    	    atid = recordQMSTRS.AGATID;
+    	    atva = recordQMSTRS.AGATVA;
+    	    tx30 = recordQMSTRS.AATX30;
+    	    tx15 = recordQMSTRS.PFTX15;
+    	    tx31 = recordQMSTRS.PFTX30;
+    	  
+    	    if(atid == 'DRF01' ) {
+            DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	        DBContainer EXTCLS = actionEXTCLS.getContainer();
   	
-    EXTCLS.set("EXCONO", currentCompany);
-  	EXTCLS.set("EXDIVI", divi);
-  	EXTCLS.set("EXBREF", bref);
-  	EXTCLS.set("EXITNO", itno);
-  	EXTCLS.set("EXCAT1", 'G');
-  	EXTCLS.set("EXREF1", atid + '- ' + tx30);
-  	EXTCLS.set("EXREF2", atva);
-  	EXTCLS.set("EXREF3", tx31);
-  	EXTCLS.set("EXRGDT", currentDate);
-  	EXTCLS.set("EXRGTM", currentTime);
-  	EXTCLS.set("EXLMDT", currentDate);
-  	EXTCLS.set("EXCHNO", 0);
-  	EXTCLS.set("EXCHID", program.getUser());
-        
-      ActionEXTCLS.insert(EXTCLS, recordExists);
+            EXTCLS.set("EXCONO", XXCONO);
+  	        EXTCLS.set("EXDIVI", divi);
+  	        EXTCLS.set("EXBREF", bref);
+  	        EXTCLS.set("EXITNO", itno);
+  	        EXTCLS.set("EXCAT1", 'G');
+  	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
+  	        EXTCLS.set("EXREF2", atva);
+  	        EXTCLS.set("EXREF3", tx31);
+  	        EXTCLS.set("EXRGDT", currentDate);
+  	        EXTCLS.set("EXRGTM", currentTime);
+  	        EXTCLS.set("EXLMDT", currentDate);
+  	        EXTCLS.set("EXCHNO", 0);
+  	        EXTCLS.set("EXCHID", program.getUser());
+            actionEXTCLS.insert(EXTCLS, recordExists);
+    	    }
     	       
-    	   }
-    	       
-    	        if(atid >= 'ADJ01' && atid <= 'ADJ99' && !atva.equals("N.")) {
+    	    if(atid >= 'ADJ01' && atid <= 'ADJ99' && !atva.equals("N.")) {
     	          
-    	     
-    DBAction ActionEXTCLS = database.table("EXTCLS").build();
-  	DBContainer EXTCLS = ActionEXTCLS.getContainer();
+    	      DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	        DBContainer EXTCLS = actionEXTCLS.getContainer();
   	
-    EXTCLS.set("EXCONO", currentCompany);
-  	EXTCLS.set("EXDIVI", divi);
-  	EXTCLS.set("EXBREF", bref);
-  	EXTCLS.set("EXITNO", itno);
-  	EXTCLS.set("EXCAT1", 'H');
-  	EXTCLS.set("EXREF1", atid + '- ' + tx30);
-  	EXTCLS.set("EXREF2", atva);
-  	EXTCLS.set("EXREF3", tx31);
-  	EXTCLS.set("EXRGDT", currentDate);
-  	EXTCLS.set("EXRGTM", currentTime);
-  	EXTCLS.set("EXLMDT", currentDate);
-  	EXTCLS.set("EXCHNO", 0);
-  	EXTCLS.set("EXCHID", program.getUser());
-        
-      ActionEXTCLS.insert(EXTCLS, recordExists);
-    	       
-    	   }
-    	     
-          }
+            EXTCLS.set("EXCONO", XXCONO);
+  	        EXTCLS.set("EXDIVI", divi);
+  	        EXTCLS.set("EXBREF", bref);
+  	        EXTCLS.set("EXITNO", itno);
+  	        EXTCLS.set("EXCAT1", 'H');
+  	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
+  	        EXTCLS.set("EXREF2", atva);
+  	        EXTCLS.set("EXREF3", tx31);
+  	        EXTCLS.set("EXRGDT", currentDate);
+  	        EXTCLS.set("EXRGTM", currentTime);
+  	        EXTCLS.set("EXLMDT", currentDate);
+  	        EXTCLS.set("EXCHNO", 0);
+  	        EXTCLS.set("EXCHID", program.getUser());
+            actionEXTCLS.insert(EXTCLS, recordExists);
+    	    }
         }
       }
+    }
 	  
+	  DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	DBContainer EXTCLS = actionEXTCLS.getContainer();
 	  
-	  DBAction ActionEXTCLS = database.table("EXTCLS").build();
-  	DBContainer EXTCLS = ActionEXTCLS.getContainer();
-	  
-	  EXTCLS.set("EXCONO", currentCompany);
+	  EXTCLS.set("EXCONO", XXCONO);
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXITNO", itno);
   	EXTCLS.set("EXBREF", bref);
@@ -373,10 +396,9 @@ EXTCLS.delete();
   	EXTCLS.set("EXLMDT", currentDate);
   	EXTCLS.set("EXCHNO", 0);
   	EXTCLS.set("EXCHID", program.getUser());
-        
-      ActionEXTCLS.insert(EXTCLS, recordExists);
+    actionEXTCLS.insert(EXTCLS, recordExists);
       
-    EXTCLS.set("EXCONO", currentCompany);
+    EXTCLS.set("EXCONO", XXCONO);
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXITNO", itno);
   	EXTCLS.set("EXBREF", bref);
@@ -389,10 +411,9 @@ EXTCLS.delete();
   	EXTCLS.set("EXLMDT", currentDate);
   	EXTCLS.set("EXCHNO", 0);
   	EXTCLS.set("EXCHID", program.getUser());
-        
-      ActionEXTCLS.insert(EXTCLS, recordExists);
+    actionEXTCLS.insert(EXTCLS, recordExists);
     
-     EXTCLS.set("EXCONO", currentCompany);
+    EXTCLS.set("EXCONO", XXCONO);
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXITNO", itno);
   	EXTCLS.set("EXBREF", bref);
@@ -405,10 +426,9 @@ EXTCLS.delete();
   	EXTCLS.set("EXLMDT", currentDate);
   	EXTCLS.set("EXCHNO", 0);
   	EXTCLS.set("EXCHID", program.getUser());
-        
-      ActionEXTCLS.insert(EXTCLS, recordExists);
+    actionEXTCLS.insert(EXTCLS, recordExists);
       
-       EXTCLS.set("EXCONO", currentCompany);
+    EXTCLS.set("EXCONO", XXCONO);
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXITNO", itno);
   	EXTCLS.set("EXBREF", bref);
@@ -421,10 +441,9 @@ EXTCLS.delete();
   	EXTCLS.set("EXLMDT", currentDate);
   	EXTCLS.set("EXCHNO", 0);
   	EXTCLS.set("EXCHID", program.getUser());
+    actionEXTCLS.insert(EXTCLS, recordExists);
         
-      ActionEXTCLS.insert(EXTCLS, recordExists);
-        
-    EXTCLS.set("EXCONO", currentCompany);
+    EXTCLS.set("EXCONO", XXCONO);
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXITNO", itno);
   	EXTCLS.set("EXBREF", bref);
@@ -437,10 +456,9 @@ EXTCLS.delete();
   	EXTCLS.set("EXLMDT", currentDate);
   	EXTCLS.set("EXCHNO", 0);
   	EXTCLS.set("EXCHID", program.getUser());
-        
-      ActionEXTCLS.insert(EXTCLS, recordExists);
+    actionEXTCLS.insert(EXTCLS, recordExists);
       
-    EXTCLS.set("EXCONO", currentCompany);
+    EXTCLS.set("EXCONO", XXCONO);
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXITNO", itno);
   	EXTCLS.set("EXBREF", bref);
@@ -453,10 +471,9 @@ EXTCLS.delete();
   	EXTCLS.set("EXLMDT", currentDate);
   	EXTCLS.set("EXCHNO", 0);
   	EXTCLS.set("EXCHID", program.getUser());
-        
-      ActionEXTCLS.insert(EXTCLS, recordExists);
+    actionEXTCLS.insert(EXTCLS, recordExists);
     
-    EXTCLS.set("EXCONO", currentCompany);
+    EXTCLS.set("EXCONO", XXCONO);
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXBREF", bref);
   	EXTCLS.set("EXITNO", itno);
@@ -469,9 +486,13 @@ EXTCLS.delete();
   	EXTCLS.set("EXLMDT", currentDate);
   	EXTCLS.set("EXCHNO", 0);
   	EXTCLS.set("EXCHID", program.getUser());
-        
-      ActionEXTCLS.insert(EXTCLS, recordExists);
-    
+    actionEXTCLS.insert(EXTCLS, recordExists);
+  }
+	/*
+   * recordExists - return record already exists error message to the MI
+   *
+   */
+	Closure recordExists = {
+     mi.error("Record already exists");
 	}
-  
 }

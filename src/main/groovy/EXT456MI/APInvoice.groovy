@@ -182,7 +182,6 @@ public class APInvoice extends ExtendM3Transaction {
   	  sino = "";
   	}
   
-	
   		//Validate input fields
     if (!cono.isEmpty()) {
 		  if (cono.isInteger()){
@@ -197,7 +196,7 @@ public class APInvoice extends ExtendM3Transaction {
 		
 		if (divi.isEmpty()) {
 		  program.LDAZD.DIVI;
-		} else {
+		  } else {
 		  DBAction queryCMNDIV = database.table("CMNDIV").index("00").selection("CCDIVI").build();
       DBContainer CMNDIV = queryCMNDIV.getContainer();
       CMNDIV.set("CCCONO", XXCONO);
@@ -232,28 +231,60 @@ public class APInvoice extends ExtendM3Transaction {
       return;
     }
     
+    
     // - Validate itno
-    DBAction queryMITMAS = database.table("MITMAS").index("00").selection("MMITNO").build();
-    DBContainer MITMAS = queryMITMAS.getContainer();
-    MITMAS.set("MMCONO", XXCONO);
-    MITMAS.set("MMITNO", itno);
-     if (!queryMITMAS.read(MITMAS)) {
-      mi.error("Itemno is invalid.");
-      return;
+    if (!itno.isEmpty()) {
+      DBAction queryMITMAS = database.table("MITMAS").index("00").selection("MMITNO").build();
+      DBContainer MITMAS = queryMITMAS.getContainer();
+      MITMAS.set("MMCONO", XXCONO);
+      MITMAS.set("MMITNO", itno);
+      if (!queryMITMAS.read(MITMAS)) {
+        mi.error("Itemno is invalid.");
+        return;
+      }
     }
     
-    
-      // - validate puno
-    DBAction queryMPHEAD = database.table("MPHEAD").index("00").selection("IAPUNO").build();
-    DBContainer MPHEAD = queryMPHEAD.getContainer();
-    MPHEAD.set("IACONO", XXCONO);
-    MPHEAD.set("IAPUNO", puno);
-    if (!queryMPHEAD.read(MPHEAD)) {
-      mi.error("Purchase order number is invalid.");
-      return;
+    // - validate puno
+    if (!puno.isEmpty()) { 
+      DBAction queryMPHEAD = database.table("MPHEAD").index("00").selection("IAPUNO").build();
+      DBContainer MPHEAD = queryMPHEAD.getContainer();
+      MPHEAD.set("IACONO", XXCONO);
+      MPHEAD.set("IAPUNO", puno);
+      if (!queryMPHEAD.read(MPHEAD)) {
+        mi.error("Purchase order number is invalid.");
+        return;
+      }
     }
     
-  
+    // - validate pnli
+    if (!pnli.isEmpty()) { 
+      DBAction queryMPLINE = database.table("MPLINE").index("00").selection("IBPUNO").build();
+      DBContainer MPLINE = queryMPLINE.getContainer();
+      MPLINE.set("IBCONO", XXCONO);
+      MPLINE.set("IBPUNO", puno);
+      MPLINE.set("IBPNLI", pnli.toInteger());
+      MPLINE.set("IBPNLS", 0);
+      if (!queryMPLINE.read(MPLINE)) {
+        mi.error("Purchase order line is invalid.");
+        return;
+      }
+    }
+    
+    // - validate sudo
+    if (!sudo.isEmpty()) { 
+  	  found = false;
+      DBAction queryFGRECL = database.table("FGRECL").index("30").selection("F2DIVI", "F2SUDO").build();
+      DBContainer FGRECL = queryFGRECL.getContainer();
+      FGRECL.set("F2CONO", XXCONO);
+      FGRECL.set("F2DIVI", divi);
+      FGRECL.set("F2SUDO", sudo);
+      queryFGRECL.readAll(FGRECL, 3, 1, lstFGRECL);
+      if (!found) {
+        mi.error("Delivery No is invalid.");
+        return;
+      }
+    }
+    
   	if (inbn.isEmpty()) { inbn = "0";  }
   	if (trno.isEmpty()) { trno = "0";  }
   	if (pnli.isEmpty()) { pnli = "0";  }
@@ -313,7 +344,6 @@ public class APInvoice extends ExtendM3Transaction {
     
     DBAction ActionEXTIBL = database.table("EXTIBL").build();
     DBContainer EXTIBL = ActionEXTIBL.getContainer();
-  
     EXTIBL.set("EXCONO", XXCONO);
     EXTIBL.set("EXDIVI", divi);
     EXTIBL.set("EXPUNO", puno);
@@ -489,14 +519,10 @@ public class APInvoice extends ExtendM3Transaction {
       }
       
       // member
-       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('MBR01')){
+      if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('MBR01')){
         mem1 = response.NLAM.toString(); 
         me1x = response.NLAM.toDouble();
-        
-      
-       
-       
-       }
+      }
     }
   
 	  miCaller.call("APS450MI","LstLines", params03, callback03);	
@@ -513,7 +539,7 @@ public class APInvoice extends ExtendM3Transaction {
   */
   
   Closure recordExists = {
-     mi.error("Record already exists");
+    mi.error("Record already exists");
   }
   
   /*

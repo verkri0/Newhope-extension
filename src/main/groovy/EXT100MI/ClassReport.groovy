@@ -142,7 +142,7 @@ public class ClassReport extends ExtendM3Transaction {
   
   public void main() {
     
-  	cono = mi.inData.get("CONO") == null ? '' : mi.inData.get("CONO").trim();
+    cono = mi.inData.get("CONO") == null ? '' : mi.inData.get("CONO").trim();
   	if (cono == "?") {
   	  cono = "";
   	} 
@@ -205,7 +205,7 @@ public class ClassReport extends ExtendM3Transaction {
       return;
     }
   	
-  	 // - validate suno
+  	// - validate suno
     DBAction queryCIDMAS = database.table("CIDMAS").index("00").selection("IDSUNO").build();
     DBContainer CIDMAS = queryCIDMAS.getContainer();
     CIDMAS.set("IDCONO", XXCONO);
@@ -229,7 +229,7 @@ public class ClassReport extends ExtendM3Transaction {
       return;
     }
   	
-  	 // - validate itno
+  	// - validate itno
     DBAction queryMITMAS = database.table("MITMAS").index("00").selection("MMITNO").build();
     DBContainer MITMAS = queryMITMAS.getContainer();
     MITMAS.set("MMCONO", XXCONO);
@@ -255,7 +255,6 @@ public class ClassReport extends ExtendM3Transaction {
    * delete record EXTCLX if exists for selected whlo-suno-sudo 
    *
   */
-  
   def deleteEXTCLX(String cono, String divi, String whlo, String suno, String sudo) {
   
     DBAction queryEXTCLX = database.table("EXTCLX").index("00").selection("EXCONO", "EXDIVI", "EXWHLO", "EXSUNO", "EXSUDO").build();
@@ -281,7 +280,7 @@ public class ClassReport extends ExtendM3Transaction {
   */
   def writeEXTCLX(String cono, String divi, String whlo, String suno, String sudo) {
 	  
-  	int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
+    int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
   	
     ExpressionFactory expression = database.getExpressionFactory("MITTRA");
@@ -327,9 +326,9 @@ public class ClassReport extends ExtendM3Transaction {
       }
     }
   
-	 miCaller.call("MMS235MI","GetItmLot", params01, callback01);	
+	  miCaller.call("MMS235MI","GetItmLot", params01, callback01);	
   
-   getAttributes(atnr);
+    getAttributes(atnr);
    
   }
   
@@ -338,7 +337,7 @@ public class ClassReport extends ExtendM3Transaction {
   * get attributes for the selected lotnumber retrieved from the previous MI call MMS235MI*
   *
   */
-   def getAttributes(String atnr) {
+  def getAttributes(String atnr) {
      
     grwe = 0;
     newe = 0;

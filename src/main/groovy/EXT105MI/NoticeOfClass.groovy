@@ -39,7 +39,7 @@
  import java.math.RoundingMode;
  import java.text.DecimalFormat;
 
-/*
+ /*
  * Populate table EXTCLS for Notice of Classification report
  */
   public class NoticeOfClass extends ExtendM3Transaction {
@@ -165,7 +165,7 @@
   }
   
  
-/*
+ /*
  * deleteEXTCLS - delete existing records with key cono-divi-itno-bref
  */
   def deleteEXTCLS(String cono, String divi, String itno, String bref) {
@@ -179,14 +179,14 @@
     queryEXTCLS.readAllLock(EXTCLS, 4, deleteEXTCLS);
   }
     
-/*
+ /*
  * deleteEXTCLS - Callback function
  */
   Closure<?> deleteEXTCLS = { LockedResult EXTCLS ->
     EXTCLS.delete();
   }
 
-/*
+ /*
  * write EXTCLS - write records to EXTCLS 
  */
   def writeEXTCLS(String cono, String divi, String itno, String bref) {
@@ -258,7 +258,7 @@
 	}
   
  
-/*
+ /*
  * Write data to Lot Reference extension table, EXTCLS
  *
  */ 
@@ -286,7 +286,7 @@
       recordList.eachWithIndex { it, index ->
         Map<String, String> recordQMSTRS = (Map<String, String>) it;
         if (lstTestResults_Range.size() < 99) {
-    	    suno = recordQMSTRS.ORPAN1;
+    	     suno = recordQMSTRS.ORPAN1;
     	    sunm = recordQMSTRS.IDSUNM;
     	    sudo = recordQMSTRS.ORPAN2;
     	    nobins = nobins + 1;

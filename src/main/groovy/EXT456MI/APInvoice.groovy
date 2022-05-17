@@ -28,9 +28,7 @@
  *
  */
 
-
-
- import groovy.lang.Closure
+ import groovy.lang.Closure;
  
  import java.time.LocalDate;
  import java.time.LocalDateTime;
@@ -56,7 +54,6 @@ public class APInvoice extends ExtendM3Transaction {
   private String itno;
   private String ceid;
   private String sino;
-  private String nlam;
   private String grpr;
   private String puno;
   private String pnli;
@@ -74,13 +71,13 @@ public class APInvoice extends ExtendM3Transaction {
   private String base;
   private String base1;
   private String loa1; 
-  private String adj02;  
+  private String adj2;  
   private String neta;  
   private String netx;  
-  private Double loa1x;
-  private Double mem01x;
+  private Double lo1x;
+  private Double me1x;
   private Double netax1;
-  private String adj01r;
+  private String ad1r;
   private String adj02r;
   private String adj03r;
   private String adj04r;
@@ -104,27 +101,28 @@ public class APInvoice extends ExtendM3Transaction {
   private String adj22r;
   private String adj23r;
   private String adj24r;
-  private double rat511;
-  private double rat51;
+  private double r511;
+  private double ra51;
   private double rat51x;
-  private double adj02x;  
-  private double car01x;  
-  private double keysupplierx;
-  private String newex;
-  private String agatid;
+  private double ad2x;  
+  private double ca1x;  
+  private double sunx;
+  private String newx;
+  private String agtd;
   private String itds;
   private String atnr; 
   private String grwe;
   private String newe; 
   private String rat5;  
   private String rat6;
-  private String car01;
-  private String mem01;
-  private String keysupplier;
-  private String agreement;
-  private double agreementx;   
+  private String car1;
+  private String mem1;
+  private String sun1;
+  private String agno;
+  private double agnx;   
   private String grad;  
-  private String grad1;  
+  private String gra1;  
+  private boolean found;
   
  
   public APInvoice(MIAPI mi, DatabaseAPI database, MICallerAPI miCaller, LoggerAPI logger, ProgramAPI program, IonAPI ion) {
@@ -139,341 +137,391 @@ public class APInvoice extends ExtendM3Transaction {
   
   public void main() {
   
-      cono = mi.inData.get("CONO") == null ? '' : mi.inData.get("CONO").trim();
+    cono = mi.inData.get("CONO") == null ? '' : mi.inData.get("CONO").trim();
   	if (cono == "?") {
   	  cono = "";
-  	} 
-    
-    
-   if (!cono.isEmpty()) {
-			if (cono.isInteger()){
-				XXCONO= cono.toInteger();
-			} else {
-				mi.error("Company " + cono + " is invalid");
-				return;
-			}
-		} else {
-			XXCONO= program.LDAZD.CONO;
-		}
+  	}
   	
-  	divi = mi.inData.get("DIVI") == null ? '' : mi.inData.get("DIVI").trim();
-  		if (divi == "?") {
+   	divi = mi.inData.get("DIVI") == null ? '' : mi.inData.get("DIVI").trim();
+  	if (divi == "?") {
   	  divi = "";
   	} 
   
   	inbn = mi.inData.get("INBN") == null ? '' : mi.inData.get("INBN").trim();
-  		if (inbn == "?") {
+  	if (inbn == "?") {
   	  inbn = "";
   	} 
   	
   	trno = mi.inData.get("TRNO") == null ? '' : mi.inData.get("TRNO").trim();
-  		if (trno == "?") {
+  	if (trno == "?") {
   	  trno = "";
   	}
-  	
-  	ceid = mi.inData.get("CEID") == null ? '' : mi.inData.get("CEID").trim();
-  		if (ceid == "?") {
-  	  ceid = "";
-  	}
-  	
-  	 	nlam = mi.inData.get("NLAM") == null ? '' : mi.inData.get("NLAM").trim();
-  		if (nlam == "?") {
-  	  nlam = "";
-  	}
-  	
-  		puno = mi.inData.get("PUNO") == null ? '' : mi.inData.get("PUNO").trim();
-  		if (puno == "?") {
+  
+  	puno = mi.inData.get("PUNO") == null ? '' : mi.inData.get("PUNO").trim();
+  	if (puno == "?") {
   	  puno = "";
   	}
   	
   	pnli = mi.inData.get("PNLI") == null ? '' : mi.inData.get("PNLI").trim();
-  		if (pnli == "?") {
+  	if (pnli == "?") {
   	  pnli = "";
   	}
   	
-  		itno = mi.inData.get("ITNO") == null ? '' : mi.inData.get("ITNO").trim();
-  		if (itno == "?") {
+  	itno = mi.inData.get("ITNO") == null ? '' : mi.inData.get("ITNO").trim();
+  	if (itno == "?") {
   	  itno = "";
   	}
   	
-  		sudo = mi.inData.get("SUDO") == null ? '' : mi.inData.get("SUDO").trim();
-  		if (sudo == "?") {
+  	sudo = mi.inData.get("SUDO") == null ? '' : mi.inData.get("SUDO").trim();
+  	if (sudo == "?") {
   	  sudo = "";
   	}
   	
-  		sino = mi.inData.get("SINO") == null ? '' : mi.inData.get("SINO").trim();
-  		if (sino == "?") {
+  	sino = mi.inData.get("SINO") == null ? '' : mi.inData.get("SINO").trim();
+  	if (sino == "?") {
   	  sino = "";
   	}
   
-		itds = mi.inData.get("ITDS") == null ? '' : mi.inData.get("ITDS").trim();
-  		if (itds == "?") {
-  	  itds = "";
-  	}
+	
+  		//Validate input fields
+    if (!cono.isEmpty()) {
+		  if (cono.isInteger()){
+			  XXCONO= cono.toInteger();
+			} else {
+				mi.error("Company " + cono + " is invalid");
+				return;
+		}
+		} else {
+			XXCONO= program.LDAZD.CONO;
+		}
+		
+		if (divi.isEmpty()) {
+		  program.LDAZD.DIVI;
+		} else {
+		  DBAction queryCMNDIV = database.table("CMNDIV").index("00").selection("CCDIVI").build();
+      DBContainer CMNDIV = queryCMNDIV.getContainer();
+      CMNDIV.set("CCCONO", XXCONO);
+      CMNDIV.set("CCDIVI", divi);
+      if(!queryCMNDIV.read(CMNDIV)) {
+        mi.error("Division does not exist.");
+        return;
+      } 
+		}
+		
+		 // - validate AP invoice header
+    DBAction queryFAPIBH = database.table("FAPIBH").index("00").selection("E5INBN").build();
+    DBContainer FAPIBH = queryFAPIBH.getContainer();
+    FAPIBH.set("E5CONO", XXCONO);
+    FAPIBH.set("E5DIVI", divi);
+    FAPIBH.set("E5INBN", inbn.toInteger());
+    if (!queryFAPIBH.read(FAPIBH)) {
+      mi.error("Invoice header is invalid.");
+      return;
+    }
+    
+		
+		 // - AP invoice line
+    DBAction queryFAPIBL = database.table("FAPIBL").index("00").selection("E6INBN").build();
+    DBContainer FAPIBL = queryFAPIBL.getContainer();
+    FAPIBL.set("E6CONO", XXCONO);
+    FAPIBL.set("E6DIVI", divi);
+    FAPIBL.set("E6INBN", inbn.toInteger());
+    FAPIBL.set("E6TRNO", trno.toInteger());
+    if (!queryFAPIBL.read(FAPIBL)) {
+      mi.error("Invoice Line is invalid.");
+      return;
+    }
+    
+    // - Validate itno
+    DBAction queryMITMAS = database.table("MITMAS").index("00").selection("MMITNO").build();
+    DBContainer MITMAS = queryMITMAS.getContainer();
+    MITMAS.set("MMCONO", XXCONO);
+    MITMAS.set("MMITNO", itno);
+     if (!queryMITMAS.read(MITMAS)) {
+      mi.error("Itemno is invalid.");
+      return;
+    }
+    
+    
+      // - validate puno
+    DBAction queryMPHEAD = database.table("MPHEAD").index("00").selection("IAPUNO").build();
+    DBContainer MPHEAD = queryMPHEAD.getContainer();
+    MPHEAD.set("IACONO", XXCONO);
+    MPHEAD.set("IAPUNO", puno);
+    if (!queryMPHEAD.read(MPHEAD)) {
+      mi.error("Purchase order number is invalid.");
+      return;
+    }
+    
   
-  	  if (inbn.isEmpty()) { inbn = "0";  }
-  	  if (trno.isEmpty()) { trno = "0";  }
-  	  if (nlam.isEmpty()) { nlam = "0";  }
-  	  if (pnli.isEmpty()) { pnli = "0";  }
+  	if (inbn.isEmpty()) { inbn = "0";  }
+  	if (trno.isEmpty()) { trno = "0";  }
+  	if (pnli.isEmpty()) { pnli = "0";  }
   	  
-  	  grwe = "0"
-  	  newex = "0"
-  	  rat5 = "0"
-  	  rat6 = "0"
-  	  loa1 = "0"
-  	  car01 = "0"
-      adj02 = "0"
-      keysupplier = "0"
-      agreement = "0"
-      neta = "0"
-     mem01 =  "0"
+  	grwe =  "0";
+  	newx =  "0";
+  	rat5 =  "0";
+  	rat6 =  "0";
+  	loa1 =  "0";
+  	car1 =  "0";
+    adj2 =  "0";
+    sun1 =  "0";
+    agno =  "0";
+    neta =  "0";
+    mem1 =  "0";
 
-  	  writeEXTIBL(inbn, trno, itno, ceid, nlam, puno, pnli, itds);
+  	writeEXTIBL(inbn, trno, itno,puno, pnli);
   
   }
   
-  def writeEXTIBL(String inbn, String trno, String itno, String ceid, String nlam, String puno, String pnli, String itds) {
+  /*
+   * write record EXTIBL APS450 extension record 
+   *
+  */
+  
+  def writeEXTIBL(String inbn, String trno, String itno, String puno, String pnli) {
 	  //Current date and time
   	int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
   	int currentCompany = (Integer)program.getLDAZD().CONO
   	
-  	
-  def params = ["RIDN":puno.toString(), "RIDL": pnli.toString() ] // toString is needed to convert from gstring to string
-    String bano = null
-     def callback = {
-    Map<String, String> response ->
-      logger.info("Response = ${response}")
+    def params = ["RIDN":puno.toString(), "RIDL": pnli.toString() ]; // toString is needed to convert from gstring to string
+    String bano = null;
+    def callback = {
+      Map<String, String> response ->
       if(response.BANO != null){
-        bano = response.BANO  
-      
+        bano = response.BANO;  
       }
     }
     
-     miCaller.call("MWS070MI","ListTransByRef", params, callback)	
-       
-        getAttributeNo(bano);
-        getLineDetails(inbn, puno, pnli);
-      
-   
+    miCaller.call("MWS070MI","ListTransByRef", params, callback);	
+  
+    def paramsx1 = ["ITNO":itno.toString()]; // toString is needed to convert from gstring to string
+  
+    def callbackx1 = {
+      Map<String, String> response ->
+      if(response.ITNO != null){
+        itno = response.ITNO;  
+        itds = response.ITDS;
+      }
+    }
+    
+    miCaller.call("MMS200MI","Get", paramsx1, callbackx1);	
+  
+    getAttributeNo(bano);
+    getLineDetails(inbn, puno, pnli);
+    
     DBAction ActionEXTIBL = database.table("EXTIBL").build();
-  	DBContainer EXTIBL = ActionEXTIBL.getContainer();
-  	// QI Test information
-  	
-  	EXTIBL.set("EXCONO", XXCONO);
-  	EXTIBL.set("EXDIVI", divi);
-  	EXTIBL.set("EXPUNO", puno);
-  	EXTIBL.set("EXPNLI", pnli.toInteger());
-  	EXTIBL.set("EXINBN", inbn.toInteger());
-  	EXTIBL.set("EXTRNO", trno.toInteger());
-  	EXTIBL.set("EXITNO", itno);
-  	EXTIBL.set("EXSUDO", sudo);
-  	EXTIBL.set("EXSINO", sino);
+    DBContainer EXTIBL = ActionEXTIBL.getContainer();
+  
+    EXTIBL.set("EXCONO", XXCONO);
+    EXTIBL.set("EXDIVI", divi);
+    EXTIBL.set("EXPUNO", puno);
+    EXTIBL.set("EXPNLI", pnli.toInteger());
+    EXTIBL.set("EXINBN", inbn.toInteger());
+    EXTIBL.set("EXTRNO", trno.toInteger());
+    EXTIBL.set("EXITNO", itno);
+    EXTIBL.set("EXSUDO", sudo);
+    EXTIBL.set("EXSINO", sino);
     EXTIBL.set("EXBANO", bano);
     EXTIBL.set("EXLOTS", 1);
-    EXTIBL.set("EXGRAD", agatid);
-   	EXTIBL.set("EXGRWE", grwe.toDouble());
-    EXTIBL.set("EXNEWE", newex.toDouble());
+    EXTIBL.set("EXGRAD", agtd);
+    EXTIBL.set("EXGRWE", grwe.toDouble());
+    EXTIBL.set("EXNEWE", newx.toDouble());
     EXTIBL.set("EXRAT5", rat5.toDouble());
     EXTIBL.set("EXRAT6", rat6.toDouble());
     EXTIBL.set("EXLP02", loa1.toDouble());
-    EXTIBL.set("EXCAR2", car01.toDouble());
-    EXTIBL.set("EXADJ2", adj02.toDouble());
-    EXTIBL.set("EXKEYS", keysupplier.toDouble());
-    EXTIBL.set("EXAGT1", agreement.toDouble());
+    EXTIBL.set("EXCAR2", car1.toDouble());
+    EXTIBL.set("EXADJ2", adj2.toDouble());
+    EXTIBL.set("EXKEYS", sun1.toDouble());
+    EXTIBL.set("EXAGT1", agno.toDouble());
     EXTIBL.set("EXG004", neta.toDouble());
     EXTIBL.set("EXTOTS", netx);
-    EXTIBL.set("EXMB02", mem01.toDouble());
+    EXTIBL.set("EXMB02", mem1.toDouble());
     EXTIBL.set("EXITDS", itds);
-    EXTIBL.set("EXADEX", adj01r);
+    EXTIBL.set("EXADEX", ad1r);
+    EXTIBL.set("EXGROS", rat6);
     EXTIBL.set("EXRGDT", currentDate);
     EXTIBL.set("EXLMDT", currentDate);
     EXTIBL.set("EXRGTM", currentTime);
+    EXTIBL.set("EXCHNO", 0);
     EXTIBL.set("EXCHID", program.getUser());
-
-  	ActionEXTIBL.insert(EXTIBL, recordExists);
-
+	  ActionEXTIBL.insert(EXTIBL, recordExists);
 	}
+	
+	/*
+   * get attribute number from the bano record  
+   *
+  */
 	
 	def getAttributeNo(String bano) {
 	  
-	 def params01 = ["ITNO":itno.toString(), "BANO": bano.toString() ] // toString is needed to convert from gstring to string
-    String atnr = null
-    
+	  def params01 = ["ITNO":itno.toString(), "BANO": bano.toString() ]; // toString is needed to convert from gstring to string
+    String atnr = null;
     def callback01 = {
-    Map<String, String> response ->
+      Map<String, String> response ->
       if(response.ATNR != null){
-        atnr = response.ATNR  
-    }
+        atnr = response.ATNR;  
+      }
     }
     
-    
-	 miCaller.call("MMS235MI","GetItmLot", params01, callback01)	
+	  miCaller.call("MMS235MI","GetItmLot", params01, callback01);	
 	 
 	  getAttributes(atnr);
 	 
 	}
 	
+	/*
+   * get attributes from lotnumber/attribute nr  
+   *
+  */
 	
 	def getAttributes(String atnr) {
 	  
-	  newex = 0
-	  newe = "0"
-	  adj01r = ""
+	  newx = 0;
+	  newe = "0";
+	  ad1r = "";
 	 
-	 def params02 = ["ATNR":atnr.toString()] // toString is needed to convert from gstring to string
+	  def params02 = ["ATNR":atnr.toString()]; // toString is needed to convert from gstring to string
     
     def callback02 = {
-    Map<String, String> response ->
-        if(response.ATID.trim().equals("DRF01")){
-        agatid = response.ATVA  
-      
+      Map<String, String> response ->
+      if(response.ATID.trim().equals("DRF01")){
+        agtd = response.ATVA;  
       }
       
       if(response.ATID.trim().equals("REC01")){
-        grwe = response.ATVN  
-       
+        grwe = response.ATVN;  
       }
       
       if(response.ATID.trim().equals("REC02")){
-        newe = response.ATVN  
-        newex = grwe.toDouble() - newe.toDouble()
-      
+        newe = response.ATVN;  
+        newx = grwe.toDouble() - newe.toDouble();
       }
       
-    //adjustments  
+      //adjustments  
       if(response.ATID.trim() >= "ADJ01" && response.ATID.trim() <= "ADJ99" && response.ATVA != null && response.ATVA.trim() !='N.'){
-        adj01r += response.OPDS + ', '  
-        
-      
+        ad1r += response.OPDS + ', ';  
       }
-      
     }
     
-    
-	 miCaller.call("ATS101MI","GetAttributes", params02, callback02)	
+	  miCaller.call("ATS101MI","GetAttributes", params02, callback02);	
 	
 	}
 	
 	def getLineDetails(String inbn, String puno, String pnli) {
 	  
-	 
-	 loa1 = "0"
-	 car01 = "0"
-	 adj02 = "0"
-	 adj02x = 0
-	 mem01x = 0
-	 loa1x = 0
-	 car01x = 0
-	 grad = "0"
-	 grad1 = "0"
-	 rat51 = 0
-   rat511 = 0
-   rat6 = "0"
-	 
-	 keysupplierx = 0
-	 agreementx = 0
+	  loa1 = "0";
+	  car1 = "0";
+	  adj2 = "0";
+	  ad2x =  0;
+	  me1x =  0;
+	  lo1x =  0;
+	  ca1x =  0;
+	  grad = "0";
+	  gra1 = "0";
+	  ra51 =  0;
+    r511 =  0;
+    rat6 = "0";
+	  sunx =  0;
+	  agnx =  0;
 	  
-	 def params03 = ["DIVI":divi.toString(), "INBN": inbn.toString() ] // toString is needed to convert from gstring to string
+	  def params03 = ["DIVI":divi.toString(), "INBN": inbn.toString() ]; // toString is needed to convert from gstring to string
    
     def callback03 = {
-    Map<String, String> response ->
+      Map<String, String> response ->
      
       // rate per tonnes 
       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('BAS01')){
-           base = response.GRPR 
-                  rat51 = base.toDouble() + grad.toDouble()
-                  rat5 = rat51.toString()
-           
-       
+        base = response.GRPR; 
+        ra51 = base.toDouble() + grad.toDouble();
+        rat5 = ra51.toString();
       }
-       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('GRADE')){
-           grad = response.GRPR 
-                  rat51 = base.toDouble() + grad.toDouble()
-                  rat51x = rat51 / 1000
-                  rat5 = rat51x.toString()
-         
+      
+      if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('GRADE')){
+        grad = response.GRPR; 
+        ra51 = base.toDouble() + grad.toDouble();
+        rat51x = ra51 / 1000;
+        rat5 = rat51x.toString();
       }
       
       // gross value
-             if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('BAS01')){
-           base1 = response.NLAM 
-           
-            rat511 = base1.toDouble() + grad1.toDouble()
-            rat6 = rat511.toString()
-           
-       
+      if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('BAS01')){
+        base1 = response.NLAM; 
+        r511 = base1.toDouble() + gra1.toDouble();
+        rat6 = r511.toString();
       }
-       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('GRADE')){
-          grad1 = response.NLAM 
        
-         rat511 = base1.toDouble() + grad1.toDouble()
-         rat6 = rat511.toString()
-         
-          }
-      
+      if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('GRADE')){
+        gra1 = response.NLAM; 
+        r511 = base1.toDouble() + gra1.toDouble();
+        rat6 = r511.toString();
+      }
       
        // adjustments
       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim() >= 'ADJ01' && response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim() <= 'ADJ99'){
-           adj02x = adj02x +  (response.NLAM.toDouble()) 
-           adj02 = adj02x.toString()
-       
+        ad2x = ad2x +  (response.NLAM.toDouble()); 
+        adj2 = ad2x.toString();
       }
       
-        // carrier
+      // carrier
       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('CAR01')){
-           car01 = response.NLAM.toString() 
-           car01x = response.NLAM.toDouble()
-        }
+        car1 = response.NLAM.toString(); 
+        ca1x = response.NLAM.toDouble();
+      }
       
-      
-        // keysupplier
+      // keysupplier
       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('GSU01')){
-           keysupplier = response.NLAM.toString() 
-           keysupplierx = response.NLAM.toDouble()
-         
-        }
+        sun1 = response.NLAM.toString(); 
+        sunx = response.NLAM.toDouble();
+      }
       
-       // keysupplier
+      // agreement type
       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('AGT01')){
-           agreement = response.NLAM.toString() 
-           agreementx = response.NLAM.toDouble()
-           
+        agno = response.NLAM.toString(); 
+        agnx = response.NLAM.toDouble();
       }
       
-        // loader
+      // loader
       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('LOA01')){
-          loa1 = response.NLAM.toString() 
-          loa1x = response.NLAM.toDouble()
-        
+        loa1 = response.NLAM.toString(); 
+        lo1x = response.NLAM.toDouble();
       }
-      
       
       // member
        if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('MBR01')){
-           mem01 = response.NLAM.toString() 
-           mem01x = response.NLAM.toDouble()
-           
-       netax1 = rat511.toDouble() + adj02x.toDouble() + mem01x.toDouble() + car01x.toDouble() + loa1x.toDouble() + agreementx.toDouble() + keysupplierx.toDouble()
+        mem1 = response.NLAM.toString(); 
+        me1x = response.NLAM.toDouble();
+        
       
-          neta = netax1.toString()
-           netx = netax1.toString()
        
-      }
-      
-     
+       
+       }
     }
-    
-    
-	 miCaller.call("APS450MI","LstLines", params03, callback03)	
+  
+	  miCaller.call("APS450MI","LstLines", params03, callback03);	
+	  
+	  netax1 = r511.toDouble() + ad2x.toDouble() + me1x.toDouble() + ca1x.toDouble() + lo1x.toDouble() + agnx.toDouble() + sunx.toDouble();
+    neta = netax1.toString();
+    netx = netax1.toString();
  
-	
 	}
 	
+	/*
+   * recordEXists - Callback if record already exists
+   *
+  */
   
   Closure recordExists = {
-
+     mi.error("Record already exists");
   }
-
-
+  
+  /*
+   * lstFGRECL - Callback function to return FGRECL records
+   *
+  */
+  
+  Closure<?> lstFGRECL = { DBContainer FGRECL ->
+    found = true;
+  }
 }

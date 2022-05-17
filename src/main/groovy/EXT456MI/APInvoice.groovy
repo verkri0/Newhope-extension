@@ -342,8 +342,8 @@ public class APInvoice extends ExtendM3Transaction {
     getAttributeNo(bano);
     getLineDetails(inbn, puno, pnli);
     
-    DBAction ActionEXTIBL = database.table("EXTIBL").build();
-    DBContainer EXTIBL = ActionEXTIBL.getContainer();
+    DBAction actionEXTIBL = database.table("EXTIBL").build();
+    DBContainer EXTIBL = actionEXTIBL.getContainer();
     EXTIBL.set("EXCONO", XXCONO);
     EXTIBL.set("EXDIVI", divi);
     EXTIBL.set("EXPUNO", puno);
@@ -376,7 +376,7 @@ public class APInvoice extends ExtendM3Transaction {
     EXTIBL.set("EXRGTM", currentTime);
     EXTIBL.set("EXCHNO", 0);
     EXTIBL.set("EXCHID", program.getUser());
-	  ActionEXTIBL.insert(EXTIBL, recordExists);
+	  actionEXTIBL.insert(EXTIBL, recordExists);
 	}
 	
 	/*

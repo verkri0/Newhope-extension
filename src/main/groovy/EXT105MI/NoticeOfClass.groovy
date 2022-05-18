@@ -72,6 +72,7 @@
   private String ref2;
   private String ref3;
   private String ref4;
+  private String itds;
   private List lstQITests_Range;
   private List lstQITests_Target;
   private List lstQITests_Quality;
@@ -194,7 +195,18 @@
 	  //Current date and time
     int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
-  
+  	
+  	 def params01 = ["ITNO": itno.toString(),]; 
+    
+    def callback01 = {
+      Map<String, String> response ->
+      if(response.ITDS != null){
+        itds =  response.ITDS; 
+      }
+    }
+    
+  	miCaller.call("MMS200MI","Get", params01, callback01);
+  	
   	DBAction actionEXTCLS = database.table("EXTCLS").build();
   	DBContainer EXTCLS = actionEXTCLS.getContainer();
   
@@ -203,7 +215,7 @@
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXBREF", bref);
   	EXTCLS.set("EXITNO", itno);
-  	EXTCLS.set("EXCAT1", 'K');
+  	EXTCLS.set("EXCAT1", 'L');
   	EXTCLS.set("EXREF1", '.');
   	EXTCLS.set("EXRGDT", currentDate);
   	EXTCLS.set("EXRGTM", currentTime);
@@ -217,7 +229,7 @@
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXBREF", bref);
   	EXTCLS.set("EXITNO", itno);
-  	EXTCLS.set("EXCAT1", 'K');
+  	EXTCLS.set("EXCAT1", 'L');
   	EXTCLS.set("EXREF1", '.');
   	EXTCLS.set("EXREF2", '.');
   	EXTCLS.set("EXRGDT", currentDate);
@@ -232,7 +244,7 @@
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXBREF", bref);
   	EXTCLS.set("EXITNO", itno);
-  	EXTCLS.set("EXCAT1", 'L');
+  	EXTCLS.set("EXCAT1", 'M');
   	EXTCLS.set("EXREF2", 'Date:');
   	EXTCLS.set("EXRGDT", currentDate);
   	EXTCLS.set("EXRGTM", currentTime);
@@ -246,7 +258,7 @@
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXBREF", bref);
   	EXTCLS.set("EXITNO", itno);
-  	EXTCLS.set("EXCAT1", 'L');
+  	EXTCLS.set("EXCAT1", 'M');
   	EXTCLS.set("EXREF2", 'Signature:');
   	EXTCLS.set("EXRGDT", currentDate);
   	EXTCLS.set("EXRGTM", currentTime);
@@ -300,8 +312,8 @@
   	      EXTCLS.set("EXDIVI", divi);
   	      EXTCLS.set("EXBREF", bref);
   	      EXTCLS.set("EXITNO", itno);
-  	      EXTCLS.set("EXCAT1", 'J');
-  	      EXTCLS.set("EXREF1", 'BIN:');
+  	      EXTCLS.set("EXCAT1", 'K');
+  	      EXTCLS.set("EXREF1", '....');
   	      EXTCLS.set("EXREF2", bins);
   	      EXTCLS.set("EXREF3", '');
   	      EXTCLS.set("EXRGDT", currentDate);
@@ -344,7 +356,7 @@
   	        EXTCLS.set("EXDIVI", divi);
   	        EXTCLS.set("EXBREF", bref);
   	        EXTCLS.set("EXITNO", itno);
-  	        EXTCLS.set("EXCAT1", 'G');
+  	        EXTCLS.set("EXCAT1", 'H');
   	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
   	        EXTCLS.set("EXREF2", atva);
   	        EXTCLS.set("EXREF3", tx31);
@@ -365,7 +377,7 @@
   	        EXTCLS.set("EXDIVI", divi);
   	        EXTCLS.set("EXBREF", bref);
   	        EXTCLS.set("EXITNO", itno);
-  	        EXTCLS.set("EXCAT1", 'H');
+  	        EXTCLS.set("EXCAT1", 'I');
   	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
   	        EXTCLS.set("EXREF2", atva);
   	        EXTCLS.set("EXREF3", tx31);
@@ -406,6 +418,21 @@
   	EXTCLS.set("EXREF1", 'CLASSIFICATION REPORT');
   	EXTCLS.set("EXREF2", '');
   	EXTCLS.set("EXREF3", '');
+  	EXTCLS.set("EXRGDT", currentDate);
+  	EXTCLS.set("EXRGTM", currentTime);
+  	EXTCLS.set("EXLMDT", currentDate);
+  	EXTCLS.set("EXCHNO", 0);
+  	EXTCLS.set("EXCHID", program.getUser());
+    actionEXTCLS.insert(EXTCLS, recordExists);
+    
+    EXTCLS.set("EXCONO", XXCONO);
+  	EXTCLS.set("EXDIVI", divi);
+  	EXTCLS.set("EXITNO", itno);
+  	EXTCLS.set("EXBREF", bref);
+  	EXTCLS.set("EXCAT1", 'G');
+  	EXTCLS.set("EXREF1", 'ITEM NO:');
+  	EXTCLS.set("EXREF2", itno);
+  	EXTCLS.set("EXREF3", itds);
   	EXTCLS.set("EXRGDT", currentDate);
   	EXTCLS.set("EXRGTM", currentTime);
   	EXTCLS.set("EXLMDT", currentDate);
@@ -477,7 +504,7 @@
   	EXTCLS.set("EXDIVI", divi);
   	EXTCLS.set("EXBREF", bref);
   	EXTCLS.set("EXITNO", itno);
-  	EXTCLS.set("EXCAT1", 'I');
+  	EXTCLS.set("EXCAT1", 'J');
   	EXTCLS.set("EXREF1", 'NO OF BINS:');
   	EXTCLS.set("EXREF2", nobins.toString());
   	EXTCLS.set("EXREF3", '');

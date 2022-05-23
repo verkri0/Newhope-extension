@@ -76,6 +76,7 @@ public class APInvoice extends ExtendM3Transaction {
   private String netx;  
   private Double lo1x;
   private Double me1x;
+  private Double me2x;
   private Double netax1;
   private String ad1r;
   private String adj02r;
@@ -117,6 +118,7 @@ public class APInvoice extends ExtendM3Transaction {
   private String rat6;
   private String car1;
   private String mem1;
+  private String mem2;
   private String sun1;
   private String agno;
   private double agnx;   
@@ -166,12 +168,8 @@ public class APInvoice extends ExtendM3Transaction {
   	if (pnli == "?") {
   	  pnli = "";
   	}
-  	
-  	itno = mi.inData.get("ITNO") == null ? '' : mi.inData.get("ITNO").trim();
-  	if (itno == "?") {
-  	  itno = "";
-  	}
-  	
+  
+  
   	sudo = mi.inData.get("SUDO") == null ? '' : mi.inData.get("SUDO").trim();
   	if (sudo == "?") {
   	  sudo = "";
@@ -182,6 +180,8 @@ public class APInvoice extends ExtendM3Transaction {
   	  sino = "";
   	}
   
+  
+  
   		//Validate input fields
     if (!cono.isEmpty()) {
 		  if (cono.isInteger()){
@@ -189,14 +189,14 @@ public class APInvoice extends ExtendM3Transaction {
 			} else {
 				mi.error("Company " + cono + " is invalid");
 				return;
-		}
+		  }
 		} else {
 			XXCONO= program.LDAZD.CONO;
 		}
 		
 		if (divi.isEmpty()) {
 		  program.LDAZD.DIVI;
-		  } else {
+		} else {
 		  DBAction queryCMNDIV = database.table("CMNDIV").index("00").selection("CCDIVI").build();
       DBContainer CMNDIV = queryCMNDIV.getContainer();
       CMNDIV.set("CCCONO", XXCONO);
@@ -218,7 +218,6 @@ public class APInvoice extends ExtendM3Transaction {
       return;
     }
     
-		
 		 // - AP invoice line
     DBAction queryFAPIBL = database.table("FAPIBL").index("00").selection("E6INBN").build();
     DBContainer FAPIBL = queryFAPIBL.getContainer();
@@ -229,19 +228,6 @@ public class APInvoice extends ExtendM3Transaction {
     if (!queryFAPIBL.read(FAPIBL)) {
       mi.error("Invoice Line is invalid.");
       return;
-    }
-    
-    
-    // - Validate itno
-    if (!itno.isEmpty()) {
-      DBAction queryMITMAS = database.table("MITMAS").index("00").selection("MMITNO").build();
-      DBContainer MITMAS = queryMITMAS.getContainer();
-      MITMAS.set("MMCONO", XXCONO);
-      MITMAS.set("MMITNO", itno);
-      if (!queryMITMAS.read(MITMAS)) {
-        mi.error("Itemno is invalid.");
-        return;
-      }
     }
     
     // - validate puno
@@ -300,17 +286,41 @@ public class APInvoice extends ExtendM3Transaction {
     agno =  "0";
     neta =  "0";
     mem1 =  "0";
+    mem2 =  "0";
 
-  	writeEXTIBL(inbn, trno, itno,puno, pnli);
+    deleteEXTIBL(cono, divi, puno, pnli);
+  	writeEXTIBL(inbn, trno,puno, pnli);
   
   }
+
+ /*
+   * delete record EXTIBL if exists for selected cono-divi-puno-pnli 
+   *
+  */
+  def deleteEXTIBL(String cono, String divi, String puno, String pnli) {
   
+    DBAction queryEXTIBL = database.table("EXTIBL").index("00").selection("EXCONO", "EXDIVI", "EXPUNO", "EXPNLI").build();
+    DBContainer EXTIBL = queryEXTIBL.getContainer();
+    EXTIBL.set("EXCONO", XXCONO);
+    EXTIBL.set("EXDIVI", divi);
+    EXTIBL.set("EXPUNO", puno);
+    EXTIBL.set("EXPNLI", pnli.toInteger());
+    queryEXTIBL.readAllLock(EXTIBL, 4, deleteEXTIBL);
+  }
+  
+  /*
+  * deleteEXTIBL - Callback function
+  *
+  */
+  Closure<?> deleteEXTIBL = { LockedResult EXTIBL ->
+    EXTIBL.delete();
+  }
+
   /*
    * write record EXTIBL APS450 extension record 
    *
   */
-  
-  def writeEXTIBL(String inbn, String trno, String itno, String puno, String pnli) {
+  def writeEXTIBL(String inbn, String trno, String puno, String pnli) {
 	  //Current date and time
   	int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
@@ -322,6 +332,7 @@ public class APInvoice extends ExtendM3Transaction {
       Map<String, String> response ->
       if(response.BANO != null){
         bano = response.BANO;  
+        itno = response.ITNO;
       }
     }
     
@@ -368,6 +379,7 @@ public class APInvoice extends ExtendM3Transaction {
     EXTIBL.set("EXG004", neta.toDouble());
     EXTIBL.set("EXTOTS", netx);
     EXTIBL.set("EXMB02", mem1.toDouble());
+    EXTIBL.set("EXMB03", mem2.toDouble());
     EXTIBL.set("EXITDS", itds);
     EXTIBL.set("EXADEX", ad1r);
     EXTIBL.set("EXGROS", rat6);
@@ -383,7 +395,6 @@ public class APInvoice extends ExtendM3Transaction {
    * get attribute number from the bano record  
    *
   */
-	
 	def getAttributeNo(String bano) {
 	  
 	  def params01 = ["ITNO":itno.toString(), "BANO": bano.toString() ]; // toString is needed to convert from gstring to string
@@ -405,7 +416,6 @@ public class APInvoice extends ExtendM3Transaction {
    * get attributes from lotnumber/attribute nr  
    *
   */
-	
 	def getAttributes(String atnr) {
 	  
 	  newx = 0;
@@ -431,7 +441,7 @@ public class APInvoice extends ExtendM3Transaction {
       
       //adjustments  
       if(response.ATID.trim() >= "ADJ01" && response.ATID.trim() <= "ADJ99" && response.ATVA != null && response.ATVA.trim() !='N.'){
-        ad1r += response.OPDS + ', ';  
+        ad1r += response.OPDS + ' ';  
       }
     }
     
@@ -456,6 +466,7 @@ public class APInvoice extends ExtendM3Transaction {
 	  sunx =  0;
 	  agnx =  0;
 	  
+	  
 	  def params03 = ["DIVI":divi.toString(), "INBN": inbn.toString() ]; // toString is needed to convert from gstring to string
    
     def callback03 = {
@@ -463,6 +474,8 @@ public class APInvoice extends ExtendM3Transaction {
      
       // rate per tonnes 
       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('BAS01')){
+      
+    
         base = response.GRPR; 
         ra51 = base.toDouble() + grad.toDouble();
         rat5 = ra51.toString();
@@ -518,13 +531,22 @@ public class APInvoice extends ExtendM3Transaction {
         lo1x = response.NLAM.toDouble();
       }
       
-      // member
+      // member01
       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('MBR01')){
         mem1 = response.NLAM.toString(); 
         me1x = response.NLAM.toDouble();
       }
+      
+      // member02
+      if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('MBR02')){
+        mem2 = response.NLAM.toString(); 
+        me2x = response.NLAM.toDouble();
+      }
+      
+      
     }
   
+    miCaller.setListMaxRecords(1000);
 	  miCaller.call("APS450MI","LstLines", params03, callback03);	
 	  
 	  netax1 = r511.toDouble() + ad2x.toDouble() + me1x.toDouble() + ca1x.toDouble() + lo1x.toDouble() + agnx.toDouble() + sunx.toDouble();
@@ -537,7 +559,6 @@ public class APInvoice extends ExtendM3Transaction {
    * recordEXists - Callback if record already exists
    *
   */
-  
   Closure recordExists = {
     mi.error("Record already exists");
   }
@@ -546,7 +567,6 @@ public class APInvoice extends ExtendM3Transaction {
    * lstFGRECL - Callback function to return FGRECL records
    *
   */
-  
   Closure<?> lstFGRECL = { DBContainer FGRECL ->
     found = true;
   }

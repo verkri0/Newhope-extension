@@ -36,7 +36,7 @@
 /*
  *Modification area - M3
  *Nbr               Date      User id     Description
- *ABF_R_xxx        20220519   WZHAO       Update auisition cost in MITTRA
+ *BF0499            20220519   WZHAO       Update auisition cost in MITTRA
  *
  */
 public class UpdAcquisitCost extends ExtendM3Transaction {

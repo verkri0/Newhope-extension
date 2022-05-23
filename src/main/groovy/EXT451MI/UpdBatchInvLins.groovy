@@ -34,7 +34,7 @@
  /*
  *Modification area - M3
  *Nbr               Date      User id     Description
- *ABF_R_xxx        20220519   WZHAO       Update batch invoice lines
+ *BF0499            20220519   WZHAO       Update batch invoice lines
  *
  */
  
@@ -133,7 +133,7 @@ public class UpdBatchInvLins extends ExtendM3Transaction {
   * updateFAPIBL - Callback function
   *
   */
-   Closure<?> updateFAPIBL = { LockedResult FAPIBL ->
+  Closure<?> updateFAPIBL = { LockedResult FAPIBL ->
     String rdtp = FAPIBL.get("E6RDTP").toString().trim();
     String fav5 = FAPIBL.get("E6FAV5").toString().trim();
     String puno = FAPIBL.get("E6PUNO").toString().trim();

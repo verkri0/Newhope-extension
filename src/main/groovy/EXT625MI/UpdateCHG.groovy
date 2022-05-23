@@ -28,9 +28,7 @@
  *
  */
 
-
-
- import groovy.lang.Closure
+ import groovy.lang.Closure;
  
  import java.time.LocalDate;
  import java.time.LocalDateTime;
@@ -39,8 +37,8 @@
  import java.math.BigDecimal;
  import java.math.RoundingMode;
  import java.text.DecimalFormat;
-
-
+ import java.util.regex.Matcher;
+ import java.util.regex.Pattern;
 
 public class UpdateCHG extends ExtendM3Transaction {
   private final MIAPI mi;
@@ -53,26 +51,13 @@ public class UpdateCHG extends ExtendM3Transaction {
   //Input fields
   
   private String cono;
-  private String divi;
-  private String inbn;
-  private String trno;
-  private String sudo;
   private String car1;
-  private String suno;
-  private String lots;
-  private String chtp;
-  private String wght;
-  private String lnam;
-  private String rate;
-  private String trdt;
   private String whlo;
   private String sino;
   private String vfdt;
   private String lfdt;
-  private String puno;
-  private String appr;
-  private String asts;
-   private int XXCONO;
+  
+  private int XXCONO;
  
   public UpdateCHG(MIAPI mi, DatabaseAPI database, MICallerAPI miCaller, LoggerAPI logger, ProgramAPI program, IonAPI ion) {
     this.mi = mi;
@@ -86,13 +71,38 @@ public class UpdateCHG extends ExtendM3Transaction {
   
   public void main() {
     
-     cono = mi.inData.get("CONO") == null ? '' : mi.inData.get("CONO").trim();
+    cono = mi.inData.get("CONO") == null ? '' : mi.inData.get("CONO").trim();
   	if (cono == "?") {
   	  cono = "";
   	} 
-    
-    
-   if (!cono.isEmpty()) {
+
+  	whlo = mi.inData.get("WHLO") == null ? '' : mi.inData.get("WHLO").trim();
+  	if (whlo == "?") {
+  	  whlo = "";
+  	} 
+  
+  	car1 = mi.inData.get("CAR1") == null ? '' : mi.inData.get("CAR1").trim();
+  	if (car1 == "?") {
+  	  car1 = "";
+  	} 
+  	
+  	vfdt = mi.inData.get("VFDT") == null ? '' : mi.inData.get("VFDT").trim();
+  	if (vfdt == "?") {
+  	  vfdt = "";
+  	}
+  	
+  	lfdt = mi.inData.get("LFDT") == null ? '' : mi.inData.get("LFDT").trim();
+  	if (lfdt == "?") {
+  	  lfdt = "";
+  	}
+  	
+  	sino = mi.inData.get("SINO") == null ? '' : mi.inData.get("SINO").trim();
+  	if (sino == "?") {
+  	  sino = "";
+  	}
+  	
+  	
+  	if (!cono.isEmpty()) {
 			if (cono.isInteger()){
 				XXCONO= cono.toInteger();
 			} else {
@@ -102,71 +112,105 @@ public class UpdateCHG extends ExtendM3Transaction {
 		} else {
 			XXCONO= program.LDAZD.CONO;
 		}
+  	if (whlo.isEmpty()) {
+  	  mi.error("Warehouse must be entered.");
+  	  return;
+  	}
+  	DBAction queryMITWHL = database.table("MITWHL").index("00").selection("MWDIVI","MWFACI").build();
+    DBContainer MITWHL = queryMITWHL.createContainer();
+    MITWHL.set("MWCONO", XXCONO);
+    MITWHL.set("MWWHLO", whlo);
+    if (!queryMITWHL.read(MITWHL)){
+      mi.error("Warehouse dose not exist in MITWHL.");
+      return;
+    }
+  	if (vfdt.isEmpty()) { 
+  	  vfdt = "0";  
+  	} else {
+  	  if (!isDateValid(vfdt)) {
+  	    mi.error("From date is not a valid date.");
+  	    return;
+  	  }
+  	}
+  	if (lfdt.isEmpty()) { 
+  	  lfdt = "0";  
+  	} else {
+  	  if (!isDateValid(lfdt)) {
+  	    mi.error("To date is not a valid date.");
+  	    return;
+  	  }
+  	}
   	
-  	whlo = mi.inData.get("WHLO") == null ? '' : mi.inData.get("WHLO").trim();
-  		if (whlo == "?") {
-  	  whlo = "";
-  	} 
+  	ExpressionFactory expression = database.getExpressionFactory("EXTCHG");
+    expression = expression.ge("EXTRDT", vfdt.toString());
+    expression = expression.and(expression.le("EXTRDT", lfdt.toString()));
+    expression = expression.and(expression.eq("EXPROC", "0"));
+    
   
-  	car1 = mi.inData.get("CAR1") == null ? '' : mi.inData.get("CAR1").trim();
-  		if (car1 == "?") {
-  	  car1 = "";
-  	} 
-  	
-  	vfdt = mi.inData.get("VFDT") == null ? '' : mi.inData.get("VFDT").trim();
-  		if (vfdt == "?") {
-  	  vfdt = "";
-  	}
-  	
-  	lfdt = mi.inData.get("LFDT") == null ? '' : mi.inData.get("LFDT").trim();
-  		if (lfdt == "?") {
-  	  lfdt = "";
-  	}
-  	
-  		sino = mi.inData.get("SINO") == null ? '' : mi.inData.get("SINO").trim();
-  		if (sino == "?") {
-  	  sino = "";
-  	}
-  	
-  	
-  	
-  	
-  	  if (vfdt.isEmpty()) { vfdt = "0";  }
-  	  if (lfdt.isEmpty()) { lfdt = "0";  }
-  
-  	    updateEXTCHG(cono, whlo, car1, vfdt, lfdt, sino);
+    DBAction query = database.table("EXTCHG").index("10").matching(expression).selectAllFields().build();
+    DBContainer container = query.getContainer();
+    container.set("EXCONO", XXCONO);
+    container.set("EXWHLO", whlo.trim());
+    container.set("EXCAR1", car1.trim());  
+    query.readAll(container, 3, lstEXTCHG);
     
   }
+   /**
+   * isDateValid - check if input string is a valid date
+   *  - date format: yyyyMMdd
+   * return boolean
+   */
+  def isDateValid(String dateStr) {
+    boolean dateIsValid = true;
+    Matcher matcher=
+      Pattern.compile("^((2000|2400|2800|(19|2[0-9](0[48]|[2468][048]|[13579][26])))0229)\$" 
+        + "|^(((19|2[0-9])[0-9]{2})02(0[1-9]|1[0-9]|2[0-8]))\$"
+        + "|^(((19|2[0-9])[0-9]{2})(0[13578]|10|12)(0[1-9]|[12][0-9]|3[01]))\$" 
+        + "|^(((19|2[0-9])[0-9]{2})(0[469]|11)(0[1-9]|[12][0-9]|30))\$").matcher(dateStr);
+    dateIsValid = matcher.matches();
+    if (dateIsValid) {
+      dateIsValid = LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyyMMdd")) != null;
+    } 
+    return dateIsValid;
+  }
+  /*
+   * lstEXTCHG - callback to list records from EXTCHG
+   *
+  */
+  Closure<?> lstEXTCHG = { DBContainer EXTCHG ->
+    String itno = EXTCHG.get("EXITNO").toString().trim();
+    String rgdt = EXTCHG.get("EXRGDT").toString().trim();
+    String rgtm = EXTCHG.get("EXRGTM").toString().trim();
+    String tmsx = EXTCHG.get("EXTMSX").toString().trim();
+    String chtp = EXTCHG.get("EXCHTP").toString().trim();
+    
+    DBAction actionEXTCHG1 = database.table("EXTCHG").index("00").build();
+    DBContainer EXTCHG1 = actionEXTCHG1.getContainer();
+    EXTCHG1.set("EXCONO", XXCONO);
+    EXTCHG1.set("EXWHLO", whlo);
+    EXTCHG1.set("EXITNO", itno);
+    EXTCHG1.set("EXRGDT", rgdt.toInteger());
+    EXTCHG1.set("EXRGTM", rgtm.toInteger());
+    EXTCHG1.set("EXTMSX", tmsx.toInteger());
+    EXTCHG1.set("EXCHTP", chtp);
+    
+    actionEXTCHG1.readLock(EXTCHG1, updateEXTCHG1);
+  }
+  /*
+   * updateEXTCHG1 - Callback function to update EXTCHG table
+   *
+   */
+ Closure updateEXTCHG1 = { LockedResult EXTCHG ->
   
-  
-  def updateEXTCHG(String cono, String whlo, String car1, String vfdt, String lfdt, String sino) {
-	  //Current date and time
-  	int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
-  	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
-  	 	int currentCompany = (Integer)program.getLDAZD().CONO
-  	
-  ExpressionFactory expression = database.getExpressionFactory("EXTCHG")
-  
-   expression = expression.ge("EXRGDT", vfdt);
-   expression = expression.le("EXRGDT", lfdt);
-   expression = expression.le("EXPROC", "0");
-  
-  DBAction query = database.table("EXTCHG").index("10").matching(expression).selection("EXCONO", "EXWHLO", "EXCAR1", "EXPROC", "EXSINO").build()
-  DBContainer container = query.getContainer()
-  container.set("EXCONO", currentCompany)
-  container.set("EXWHLO", whlo.trim())
-  container.set("EXCAR1", car1.trim())  
-  query.readAllLock(container, 3, updateCallBack)
-  
-	}
-  
-  Closure<?> updateCallBack = { LockedResult lockedResult ->
-  lockedResult.set("EXPROC", "1")
-  lockedResult.set("EXSINO", sino.trim())
-  
-  lockedResult.update()
-}
-  
-  
-  
+    int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
+    
+    EXTCHG.set("EXPROC", "1");
+    EXTCHG.set("EXSINO", sino.trim());
+    EXTCHG.set("EXLMDT", currentDate);
+    EXTCHG.set("EXCHNO",  EXTCHG.get("EXCHNO").toString().toInteger() +1);
+    EXTCHG.set("EXCHID", program.getUser());
+    
+    EXTCHG.update();
+   
+  }
 }

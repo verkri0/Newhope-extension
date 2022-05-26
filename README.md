@@ -2,7 +2,7 @@
 ![Build & Test](https://github.com/infor-cloud/acme-corp-extensions/workflows/Java%20CI/badge.svg?event=push)
 
 # Frontier XtendM3 Extensions
-A sample repository for Bright Foods XtendM3 Extensions
+A sample repository for Frontier XtendM3 Extensions
 
 ## Introduction
 This repository is a sample repository for Frontier XtendM3 Extensions. The idea is to keep all customer's extension in one repository and collaborate to create, maintain and update Extensions in a central repository and move to customer's environment when needed.

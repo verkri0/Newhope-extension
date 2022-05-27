@@ -87,14 +87,14 @@ public class LstTransByDates extends ExtendM3Transaction {
     if (!validateInput()) {
       return;
     }
-    ExpressionFactory expression = database.getExpressionFactory("EXTCRD")
+    ExpressionFactory expression = database.getExpressionFactory("EXTCRD");
     expression = expression.ge("EXAUTD", frdt.toString());
     expression = expression.and(expression.le("EXAUTD", todt.toString()));
     DBAction queryEXTCRD = database.table("EXTCRD").index("00").matching(expression).selectAllFields().build();
     DBContainer EXTCRD = queryEXTCRD.getContainer();
     EXTCRD.set("EXCONO", XXCONO);
     EXTCRD.set("EXDIVI", divi);
-    int recNum = queryEXTCRD.readAll(EXTCRD, 2, lstEXTCRD);
+    int recNum = queryEXTCRD.readAll(EXTCRD, 2, 999, lstEXTCRD);
     if (recNum == 0) {
       return;
     }
@@ -152,18 +152,17 @@ public class LstTransByDates extends ExtendM3Transaction {
       Pattern.compile("^((2000|2400|2800|(19|2[0-9](0[48]|[2468][048]|[13579][26])))0229)\$" 
         + "|^(((19|2[0-9])[0-9]{2})02(0[1-9]|1[0-9]|2[0-8]))\$"
         + "|^(((19|2[0-9])[0-9]{2})(0[13578]|10|12)(0[1-9]|[12][0-9]|3[01]))\$" 
-        + "|^(((19|2[0-9])[0-9]{2})(0[469]|11)(0[1-9]|[12][0-9]|30))\$").matcher(dateStr)
-    dateIsValid = matcher.matches()
+        + "|^(((19|2[0-9])[0-9]{2})(0[469]|11)(0[1-9]|[12][0-9]|30))\$").matcher(dateStr);
+    dateIsValid = matcher.matches();
     if (dateIsValid) {
-      dateIsValid = LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyyMMdd")) != null
+      dateIsValid = LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyyMMdd")) != null;
     } 
-    return dateIsValid
+    return dateIsValid;
   }
    /*
    * lstEXTCRD - Callback function to return EXTCRD records
    *
    */
- 
   Closure<?> lstEXTCRD = { DBContainer EXTCRD ->
     mi.outData.put("YEA4", EXTCRD.get("EXYEA4").toString());
     mi.outData.put("IVNO", EXTCRD.get("EXIVNO").toString());

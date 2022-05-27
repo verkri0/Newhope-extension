@@ -81,7 +81,7 @@ public class DelCCPayTrans extends ExtendM3Transaction {
     if (!validateInput()) {
       return;
     }
-    DBAction actionEXTCRD = database.table("EXTCRD").index("00").selectAllFields().build();
+    DBAction actionEXTCRD = database.table("EXTCRD").index("00").build();
     DBContainer EXTCRD = actionEXTCRD.getContainer();
 		EXTCRD.set("EXCONO", XXCONO);
 		EXTCRD.set("EXDIVI", divi);
@@ -124,6 +124,6 @@ public class DelCCPayTrans extends ExtendM3Transaction {
    *
    */
   Closure deleteEXTCRD = { LockedResult EXTCRD ->
-    EXTCRD.delete()
+    EXTCRD.delete();
   }
 }

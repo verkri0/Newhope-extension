@@ -37,6 +37,7 @@
  *Modification area - M3
  *Nbr               Date      User id     Description
  *XXXX              20220510  XWZHAO      Credit card payment transactions
+ *XXXX              20220601  XWZHAO      Intruduce additional input for searching date on AUTD/CAPD/SETD 
  *
  */
  
@@ -54,6 +55,7 @@ public class LstTransByDates extends ExtendM3Transaction {
   private String divi;
   private String frdt;
   private String todt;
+  private String dtty;
   
   private int XXCONO;
   
@@ -83,13 +85,25 @@ public class LstTransByDates extends ExtendM3Transaction {
   	if (todt == "?") {
   	  todt = "";
   	} 
+  	dtty = mi.inData.get("DTTY") == null ? '' : mi.inData.get("DTTY").trim();
+  	if (dtty == "?") {
+  	  dtty = "";
+  	} 
   	//Validate input fields
     if (!validateInput()) {
       return;
     }
     ExpressionFactory expression = database.getExpressionFactory("EXTCRD");
-    expression = expression.ge("EXAUTD", frdt.toString());
-    expression = expression.and(expression.le("EXAUTD", todt.toString()));
+    if (dtty.toInteger() == 1) {
+      expression = expression.ge("EXAUTD", frdt.toString());
+      expression = expression.and(expression.le("EXAUTD", todt.toString()));
+    } else if (dtty.toInteger() == 2) {
+      expression = expression.ge("EXCAPD", frdt.toString());
+      expression = expression.and(expression.le("EXCAPD", todt.toString()));
+    } else {
+      expression = expression.ge("EXSETD", frdt.toString());
+      expression = expression.and(expression.le("EXSETD", todt.toString()));
+    }
     DBAction queryEXTCRD = database.table("EXTCRD").index("00").matching(expression).selectAllFields().build();
     DBContainer EXTCRD = queryEXTCRD.getContainer();
     EXTCRD.set("EXCONO", XXCONO);
@@ -137,6 +151,14 @@ public class LstTransByDates extends ExtendM3Transaction {
     }
     if (frdt.toInteger() > todt.toInteger()) {
       mi.error("From date cannot be later than To date.");
+      return false;
+    }
+    if (dtty.isEmpty()) {
+      mi.error("Search date type must be entered.");
+      return false;
+    }
+    if (dtty.toInteger() < 1 && dtty.toInteger() > 3) {
+      mi.error("Search date type must be 1, 2 or 3.");
       return false;
     }
     return true;

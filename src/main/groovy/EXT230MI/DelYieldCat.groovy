@@ -101,7 +101,7 @@ public class DelYieldCat extends ExtendM3Transaction {
    */
   Closure deleteEXTCAT = { LockedResult EXTCAT ->
 
-    EXTCAT.delete()
+    EXTCAT.delete();
 
   }
    

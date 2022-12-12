@@ -37,6 +37,7 @@
  *Modification area - M3
  *Nbr               Date      User id     Description
  *FD38740           20220808  XWZHAO      Yield category
+ *FD38740           20221208  XWZHAO      32734 - Adding additional fields into the yield category extension 
  *
  */
  
@@ -75,6 +76,8 @@ public class AddYieldCat extends ExtendM3Transaction {
   private String frdt;
   private String todt;
   private String conm;
+  private String pote;
+  private String targ;
   
   private int XXCONO;
   private int currentDate;
@@ -190,6 +193,14 @@ public class AddYieldCat extends ExtendM3Transaction {
   	if (conm == "?") {
   	  conm = "";
   	}
+  	pote = mi.inData.get("POTE") == null ? '' : mi.inData.get("POTE").trim();
+  	if (pote == "?") {
+  	  pote = "";
+  	}
+  	targ = mi.inData.get("TARG") == null ? '' : mi.inData.get("TARG").trim();
+  	if (targ == "?") {
+  	  targ = "";
+  	}
   	//Validate input fields
     if (!validateInput()) {
       return;
@@ -251,12 +262,12 @@ public class AddYieldCat extends ExtendM3Transaction {
       Pattern.compile("^((2000|2400|2800|(19|2[0-9](0[48]|[2468][048]|[13579][26])))0229)\$" 
         + "|^(((19|2[0-9])[0-9]{2})02(0[1-9]|1[0-9]|2[0-8]))\$"
         + "|^(((19|2[0-9])[0-9]{2})(0[13578]|10|12)(0[1-9]|[12][0-9]|3[01]))\$" 
-        + "|^(((19|2[0-9])[0-9]{2})(0[469]|11)(0[1-9]|[12][0-9]|30))\$").matcher(dateStr);
-    dateIsValid = matcher.matches();
+        + "|^(((19|2[0-9])[0-9]{2})(0[469]|11)(0[1-9]|[12][0-9]|30))\$").matcher(dateStr)
+    dateIsValid = matcher.matches()
     if (dateIsValid) {
-      dateIsValid = LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyyMMdd")) != null;
+      dateIsValid = LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyyMMdd")) != null
     } 
-    return dateIsValid;
+    return dateIsValid
   }
   /*
 	 * writeEXTCAT - write record to EXTCAT
@@ -335,6 +346,12 @@ public class AddYieldCat extends ExtendM3Transaction {
   	}
   	if (!conm.isEmpty()) {
   	  EXTCAT.set("EXCONM", conm);
+  	}
+  	if (!pote.isEmpty()) {
+  	  EXTCAT.set("EXPOTE", pote.toDouble());
+  	}
+  	if (!targ.isEmpty()) {
+  	  EXTCAT.set("EXTARG", targ.toDouble());
   	}
   	EXTCAT.set("EXRGDT", currentDate);
   	EXTCAT.set("EXRGTM", currentTime);

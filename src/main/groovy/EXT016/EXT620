@@ -1,0 +1,270 @@
+/*
+ ***************************************************************
+ *                                                             *
+ *                           NOTICE                            *
+ *                                                             *
+ *   THIS SOFTWARE IS THE PROPERTY OF AND CONTAINS             *
+ *   CONFIDENTIAL INFORMATION OF INFOR AND/OR ITS AFFILIATES   *
+ *   OR SUBSIDIARIES AND SHALL NOT BE DISCLOSED WITHOUT PRIOR  *
+ *   WRITTEN PERMISSION. LICENSED CUSTOMERS MAY COPY AND       *
+ *   ADAPT THIS SOFTWARE FOR THEIR OWN USE IN ACCORDANCE WITH  *
+ *   THE TERMS OF THEIR SOFTWARE LICENSE AGREEMENT.            *
+ *   ALL OTHER RIGHTS RESERVED.                                *
+ *                                                             *
+ *   (c) COPYRIGHT 2020 INFOR.  ALL RIGHTS RESERVED.           *
+ *   THE WORD AND DESIGN MARKS SET FORTH HEREIN ARE            *
+ *   TRADEMARKS AND/OR REGISTERED TRADEMARKS OF INFOR          *
+ *   AND/OR ITS AFFILIATES AND SUBSIDIARIES. ALL RIGHTS        *
+ *   RESERVED.  ALL OTHER TRADEMARKS LISTED HEREIN ARE         *
+ *   THE PROPERTY OF THEIR RESPECTIVE OWNERS.                  *
+ *                                                             *
+ ***************************************************************
+ */
+ 
+ import groovy.lang.Closure;
+ import groovy.json.JsonSlurper;
+ 
+ import java.time.LocalDate;
+ import java.time.LocalDateTime;
+ import java.time.format.DateTimeFormatter;
+ import java.math.BigDecimal;
+ import java.math.RoundingMode;
+ import java.text.DecimalFormat;
+ import java.time.ZoneId;
+ 
+ /*
+ *Modification area - M3
+ *Nbr               Date       User id     Description
+ *EXT016            20221209   XWZHAO      Supplier Annual Spending check monthly run
+ *  
+ */
+ 
+ /*
+  * Add records to EXTVEN
+  */
+
+public class EXT620 extends ExtendM3Batch {
+  private final LoggerAPI logger;
+  private final DatabaseAPI database;
+  private final BatchAPI batch;
+  private final MICallerAPI miCaller;
+  private final ProgramAPI program;
+  private final IonAPI ion;
+  
+  private String suno;
+  
+  private int XXCONO;
+  private int currentDate;
+  private int currentTime;
+  
+  private String currentYEA4;
+  private String currentPERI;
+  private String currentCYP6;
+  private String fromYEA4;
+  private String fromPERI;
+  private String fromCYP6;
+  
+  private double sumIGAM;
+  private double sumNTAM;
+  private boolean callAHS150MI;
+
+  
+  public EXT620(LoggerAPI logger, DatabaseAPI database, BatchAPI batch, MICallerAPI miCaller, ProgramAPI program, IonAPI ion) {
+    this.logger = logger;
+    this.database = database;
+    this.batch = batch;
+  	this.miCaller = miCaller;
+  	this.program = program;
+  	this.ion = ion;
+  }
+  
+  public void main() {
+    XXCONO= program.LDAZD.CONO;
+    
+    if (!batch.getReferenceId().isPresent()) {
+      logger.debug("Job data for job ${batch.getJobId()} is missing");
+      return;
+    }
+    
+    // Get parameters from EXTJOB
+    logger.debug("ReferenceId=" + batch.getReferenceId());
+    Optional<String> data = getJobData(batch.getReferenceId().get())
+    
+    if (!data.isPresent()) {
+      logger.debug("Job reference Id ${batch.getReferenceId().get()} is passed, but data was not found");
+      return
+    }
+    suno = "";
+    String rawData = data.get();
+    if (!rawData.isEmpty()) {
+      suno = rawData;
+    }
+    
+    currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
+    currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
+    String strCurrentDate = currentDate.toString();
+    String yyyyMM = strCurrentDate.substring(0, 6);
+    String strCurrentMonthStart = yyyyMM + "01";
+    
+    DBAction queryCSYPER = database.table("CSYPER").index("10").selection("CPYEA4", "CPPERI").build();
+    DBContainer CSYPER = queryCSYPER.getContainer();
+    CSYPER.set("CPCONO", XXCONO);
+    CSYPER.set("CPDIVI", "");
+    CSYPER.set("CPPETP", 1);
+    CSYPER.set("CPFDAT", strCurrentMonthStart.toInteger());
+    queryCSYPER.readAll(CSYPER, 4, 1, lstCSYPER);
+
+    
+    deleteFromEXTVEN();
+    callAHS150MI = false;
+    
+    ExpressionFactory expression = database.getExpressionFactory("CIDMAS");
+    expression = expression.eq("IDSTAT", "20");
+    expression = expression.and(expression.ne("IDCFI2", "0.0"));
+    
+    DBAction queryCIDMAS = database.table("CIDMAS").index("00").matching(expression).selection("IDSUNO", "IDCFI2").build();
+    DBContainer CIDMAS = queryCIDMAS.getContainer();
+    CIDMAS.set("IDCONO", XXCONO);
+   
+    queryCIDMAS.readAll(CIDMAS, 1, 9000, lstCIDMAS);
+    
+    if (callAHS150MI) {
+      logger.debug("Call AHS150MI.Submit...");
+      //String subj = "PRD supp annual spend " + currentPERI;
+      def  params2 = [ "REPO": "Z_SUPP02", "REPV": "Z_SUPP02", "SUBJ": ""]; 
+      def callback = {
+        Map<String, String> response1 ->
+      }
+      miCaller.call("AHS150MI","Submit", params2, callback);
+    }
+    
+  }
+  /*
+	 * getJobData 
+	 *
+	*/
+  private Optional<String> getJobData(String referenceId) {
+    def queryEXTJOB = database.table("EXTJOB").index("00").selection("EXRFID", "EXJOID", "EXDATA").build();
+    def EXTJOB = queryEXTJOB.createContainer();
+    EXTJOB.set("EXCONO", XXCONO);
+    EXTJOB.set("EXRFID", referenceId);
+    if (queryEXTJOB.read(EXTJOB)) {
+      return Optional.of(EXTJOB.getString("EXDATA"));
+    }
+    return Optional.empty();
+  } 
+   /*
+   * lstCSYPER - Callback function to return CSYPER records
+   *
+  */
+  Closure<?> lstCSYPER = { DBContainer CSYPER ->
+    currentYEA4 = CSYPER.get("CPYEA4").toString().trim();
+    currentPERI = CSYPER.get("CPPERI").toString().trim();
+    if (currentPERI.toInteger() < 10) {
+      currentPERI = "0" + currentPERI;
+    }
+    currentCYP6 = "" + currentYEA4 + currentPERI;
+    
+    if (currentPERI.toInteger() == 12) {
+      fromPERI = "01";
+      fromYEA4 = currentYEA4;
+    } else {
+      int peri = currentPERI.toInteger() + 1;
+      if (peri < 10) {
+        fromPERI = "0" + peri.toString();
+      } else {
+        fromPERI = peri.toString();
+      }
+      fromYEA4 = (currentYEA4.toInteger() - 1).toString();
+    }
+    fromCYP6 = "" + fromYEA4 + fromPERI;
+    logger.debug("currentCYP6=" + currentCYP6 + " fromCYP6=" + fromCYP6);
+  }
+  /*
+   * deleteFromEXTVEN - delete EXTVEN table
+   *
+   */
+   def deleteFromEXTVEN() {
+    DBAction queryEXTVEN = database.table("EXTVEN").index("00").build();
+    DBContainer EXTVEN = queryEXTVEN.getContainer();
+		EXTVEN.set("EXCONO", XXCONO);
+		queryEXTVEN.readAllLock(EXTVEN, 1, deleteEXTVEN);
+   }
+    /*
+  * deleteEXTVEN - Callback function
+  *
+  */
+   Closure<?> deleteEXTVEN = { LockedResult EXTVEN ->
+    EXTVEN.delete();
+   }
+    /*
+   * lstCIDMAS - Callback function to return CIDMAS records
+   *
+  */
+  Closure<?> lstCIDMAS = { DBContainer CIDMAS ->
+    String suno = CIDMAS.get("IDSUNO").toString().trim();
+    String cfi2 = CIDMAS.get("IDCFI2").toString().trim();
+    
+    ExpressionFactory expression = database.getExpressionFactory("MVENST");
+    expression = expression.ge("IVCYP6", fromCYP6);
+    expression = expression.and(expression.le("IVCYP6", currentCYP6));
+    DBAction queryMVENST = database.table("MVENST").index("20").matching(expression).selection("IVDIVI", "IVCYP6", "IVSUNO", "IVIGAM", "IVNTAM").build();
+    DBContainer MVENST = queryMVENST.getContainer();
+    MVENST.set("IVCONO", XXCONO);
+    MVENST.set("IVSUNO", suno);
+    sumIGAM = 0.0;
+    sumNTAM = 0.0;
+    queryMVENST.readAll(MVENST, 2, lstMVENST);
+    
+    logger.debug("suno=" + suno + " sumIGAM=" + sumIGAM + " cfi2=" + cfi2);
+    if (sumIGAM > cfi2.toDouble()) {
+      writeEXTVEN(suno, currentCYP6, sumIGAM, cfi2, sumNTAM);
+      if (!callAHS150MI) {
+        callAHS150MI = true;
+      }
+    }
+  }
+    /*
+   * lstMVENST - Callback function to return MVENST records
+   *
+  */
+  Closure<?> lstMVENST = { DBContainer MVENST ->
+    String suno = MVENST.get("IVSUNO").toString().trim();
+    String ivcyp6 = MVENST.get("IVCYP6").toString().trim();
+    String igam = MVENST.get("IVIGAM").toString().trim();
+    String ntam = MVENST.get("IVNTAM").toString().trim();
+    // only add none sumary lines
+    if (ivcyp6.substring(4).toInteger() != 0) {
+      sumIGAM += igam.toDouble();
+      sumNTAM += ntam.toDouble();
+    }
+  }
+  /*
+	 * writeEXTVEN
+	 *
+	 */
+	def writeEXTVEN(String suno, String peri, double igam, String cfi2, double ntam) {
+	  
+	  DBAction actionEXTVEN = database.table("EXTVEN").build();
+  	DBContainer EXTVEN = actionEXTVEN.getContainer();
+  	EXTVEN.set("EXCONO", XXCONO);
+  	EXTVEN.set("EXSUNO", suno);
+  	EXTVEN.set("EXCYP6", peri.toInteger());
+  	EXTVEN.set("EXIGAM", igam);
+  	EXTVEN.set("EXCFI2", cfi2.toDouble());
+  	EXTVEN.set("EXNTAM", ntam);
+  	EXTVEN.set("EXRGDT", currentDate);
+  	EXTVEN.set("EXRGTM", currentTime);
+  	EXTVEN.set("EXLMDT", currentDate);
+  	EXTVEN.set("EXCHNO", 0);
+  	EXTVEN.set("EXCHID", program.getUser());
+  	actionEXTVEN.insert(EXTVEN, recordExists);
+	}
+	/*
+   * recordExists - return record already exists error message to the MI
+   *
+   */
+  Closure recordExists = {
+	  logger.debug("Record already exists");
+  }
+}

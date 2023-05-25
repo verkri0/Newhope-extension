@@ -96,7 +96,7 @@ public class AddSupplMthRun extends ExtendM3Transaction {
       if (xjtm.isEmpty()) {
         xjtm = "220000";
       }
-      def params = ["JOB": "EXT620", "TX30": "Supplier spending monthly run", "XCAT": "010", "SCTY": "2", "XNOW": "", "XEMT": "1", "XRDY": "98","XJTM": xjtm, "UUID": referenceId]; // run every night
+      def params = ["JOB": "EXT620", "TX30": "Supplier spending monthly run", "XCAT": "010", "SCTY": "2", "XNOW": "", "XEMT": "1", "XRDY": "98","XJTM": xjtm, "UUID": referenceId]; 
       miCaller.call("SHS010MI", "SchedXM3Job", params, { result -> });
     }
     

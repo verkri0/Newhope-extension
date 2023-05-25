@@ -88,11 +88,11 @@ public class EXT620 extends ExtendM3Batch {
     
     // Get parameters from EXTJOB
     logger.debug("ReferenceId=" + batch.getReferenceId());
-    Optional<String> data = getJobData(batch.getReferenceId().get())
+    Optional<String> data = getJobData(batch.getReferenceId().get());
     
     if (!data.isPresent()) {
       logger.debug("Job reference Id ${batch.getReferenceId().get()} is passed, but data was not found");
-      return
+      return;
     }
     suno = "";
     String rawData = data.get();
@@ -130,7 +130,7 @@ public class EXT620 extends ExtendM3Batch {
     
     if (callAHS150MI) {
       logger.debug("Call AHS150MI.Submit...");
-      //String subj = "PRD supp annual spend " + currentPERI;
+      //String subj = "PRD supp annual spend " + currentPERI; // subject will be retrieved from adhoc report
       def  params2 = [ "REPO": "Z_SUPP02", "REPV": "Z_SUPP02", "SUBJ": ""]; 
       def callback = {
         Map<String, String> response1 ->

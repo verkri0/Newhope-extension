@@ -51,8 +51,6 @@ public class EXT620 extends ExtendM3Batch {
   private final ProgramAPI program;
   private final IonAPI ion;
   
-  private String suno;
-  
   private int XXCONO;
   private int currentDate;
   private int currentTime;
@@ -94,11 +92,6 @@ public class EXT620 extends ExtendM3Batch {
       logger.debug("Job reference Id ${batch.getReferenceId().get()} is passed, but data was not found");
       return;
     }
-    suno = "";
-    String rawData = data.get();
-    if (!rawData.isEmpty()) {
-      suno = rawData;
-    }
     
     currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
     currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
@@ -130,7 +123,7 @@ public class EXT620 extends ExtendM3Batch {
     
     if (callAHS150MI) {
       logger.debug("Call AHS150MI.Submit...");
-      //String subj = "PRD supp annual spend " + currentPERI; // subject will be retrieved from adhoc report
+      
       def  params2 = [ "REPO": "Z_SUPP02", "REPV": "Z_SUPP02", "SUBJ": ""]; 
       def callback = {
         Map<String, String> response1 ->
@@ -240,7 +233,7 @@ public class EXT620 extends ExtendM3Batch {
     }
   }
   /*
-	 * writeEXTVEN
+	 * writeEXTVEN - Write record to extensiton table EXTVEN
 	 *
 	 */
 	def writeEXTVEN(String suno, String peri, double igam, String cfi2, double ntam) {

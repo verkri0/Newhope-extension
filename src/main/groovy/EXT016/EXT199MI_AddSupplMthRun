@@ -48,7 +48,6 @@ public class AddSupplMthRun extends ExtendM3Transaction {
   private final LoggerAPI logger;
   private final ProgramAPI program;
   
-  private String suno;
   private String xnow;
   private String xjtm;
   
@@ -64,10 +63,7 @@ public class AddSupplMthRun extends ExtendM3Transaction {
   }
   
   public void main() {
-    suno = mi.inData.get("SUNO") == null ? '' : mi.inData.get("SUNO").trim();
-  	if (suno == "?") {
-  	  suno = "";
-  	} 
+    
   	xnow = mi.inData.get("XNOW") == null ? '' : mi.inData.get("XNOW").trim();
   	if (xnow == "?") {
   	  xnow = "";
@@ -77,16 +73,7 @@ public class AddSupplMthRun extends ExtendM3Transaction {
   	  xjtm = "";
   	}
   	XXCONO= program.LDAZD.CONO;
-  	if (!suno.isEmpty()) {
-  	  DBAction queryCIDMAS = database.table("CIDMAS").index("00").selection("IDSUNO").build();
-      DBContainer CIDMAS = queryCIDMAS.getContainer();
-      CIDMAS.set("IDCONO", XXCONO);
-      CIDMAS.set("IDSUNO", suno);
-      if(!queryCIDMAS.read(CIDMAS)) {
-        mi.error("Supplier does not exist.");
-        return;
-      } 
-  	}
+  	
   	String referenceId = UUID.randomUUID().toString();
     setupData(referenceId);
     if (xnow.equals("1")) {
@@ -108,9 +95,6 @@ public class AddSupplMthRun extends ExtendM3Transaction {
 	 */
   private void setupData(String referenceId) {
     String data = "";
-    if (!suno.isEmpty()) {
-      data += suno;
-    }
     
     int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));

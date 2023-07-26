@@ -93,7 +93,6 @@ public class GetCharge extends ExtendM3Transaction {
     
     DBAction query = database.table("OOHEAD").index("00").selection("OAORNO", "OABRLA", "OAUCA3", "OANTAM").build();
     DBContainer container = query.getContainer();
-    container.set("OACONO", XXCONO);
     container.set("OAORNO", orno);
     if (query.read(container)) {
       brlaT = container.get("OABRLA").toString().toDouble();

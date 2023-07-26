@@ -100,7 +100,6 @@ public class GetCharge extends ExtendM3Transaction {
       brlaY = pbamT + brlaT;
       
       def brlaX = df.format(brlaY);
-      
       mi.outData.put("CONO", XXCONO.toString());
       mi.outData.put("ORNO", container.get("OAORNO").toString());
       mi.outData.put("PBAM", pbamX.toString());
